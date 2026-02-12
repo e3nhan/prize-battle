@@ -11,13 +11,10 @@ export default function WaitingScreen() {
 
   useEffect(() => {
     if (!room) return;
-    const host = window.location.hostname;
-    const port = window.location.port || '3000';
-    const protocol = window.location.protocol;
-
-    // In dev mode, client is on port 5173
-    const clientPort = import.meta.env.DEV ? '5173' : port;
-    const url = `${protocol}//${host}:${clientPort}`;
+    // Dev: client on port 5173; Production: same origin (no port)
+    const url = import.meta.env.DEV
+      ? `${window.location.protocol}//${window.location.hostname}:5173`
+      : window.location.origin;
 
     QRCode.toDataURL(url, {
       width: 250,
