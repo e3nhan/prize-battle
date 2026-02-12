@@ -7,7 +7,7 @@ const rooms = new Map<string, Room>();
 const playerRoomMap = new Map<string, string>(); // socketId -> roomId
 
 function getRandomAvatar(existingAvatars: string[]): string {
-  const available = GAME_CONFIG.AVATARS.filter((a) => !existingAvatars.includes(a));
+  const available = GAME_CONFIG.AVATARS.filter((a: string) => !existingAvatars.includes(a));
   return available[Math.floor(Math.random() * available.length)] || '🎮';
 }
 
@@ -31,9 +31,9 @@ export function joinMainRoom(socketId: string, playerName: string): Room {
   const room = getOrCreateMainRoom();
   if (room.status !== 'waiting') throw new Error('遊戲已開始');
   if (room.players.length >= room.maxPlayers) throw new Error('房間已滿');
-  if (room.players.some((p) => p.name === playerName)) throw new Error('暱稱已被使用');
+  if (room.players.some((p: Player) => p.name === playerName)) throw new Error('暱稱已被使用');
 
-  const existingAvatars = room.players.map((p) => p.avatar);
+  const existingAvatars = room.players.map((p: Player) => p.avatar);
   const player: Player = {
     id: socketId,
     name: playerName,
@@ -54,13 +54,13 @@ export function setPlayerReady(socketId: string): Room | null {
   const room = rooms.get(roomId);
   if (!room) return null;
 
-  const player = room.players.find((p) => p.id === socketId);
+  const player = room.players.find((p: Player) => p.id === socketId);
   if (player) player.isReady = true;
   return room;
 }
 
 export function isAllReady(room: Room): boolean {
-  return room.players.length >= 2 && room.players.every((p) => p.isReady);
+  return room.players.length >= 2 && room.players.every((p: Player) => p.isReady);
 }
 
 export function handleDisconnect(socketId: string): Room | null {
@@ -69,11 +69,11 @@ export function handleDisconnect(socketId: string): Room | null {
   const room = rooms.get(roomId);
   if (!room) return null;
 
-  const player = room.players.find((p) => p.id === socketId);
+  const player = room.players.find((p: Player) => p.id === socketId);
   if (player) {
     if (room.status === 'waiting') {
       // Remove player from waiting room (keep room alive)
-      room.players = room.players.filter((p) => p.id !== socketId);
+      room.players = room.players.filter((p: Player) => p.id !== socketId);
     } else {
       // Mark as disconnected during game
       player.isConnected = false;
@@ -88,7 +88,7 @@ export function handleReconnect(socketId: string, playerName: string): Room | nu
   const room = rooms.get(MAIN_ROOM_ID);
   if (!room) return null;
 
-  const player = room.players.find((p) => p.name === playerName);
+  const player = room.players.find((p: Player) => p.name === playerName);
   if (player) {
     player.id = socketId;
     player.isConnected = true;

@@ -68,7 +68,7 @@ getOrCreateMainRoom();
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
-  socket.on('quickJoin', (playerName) => {
+  socket.on('quickJoin', (playerName: string) => {
     try {
       const room = joinMainRoom(socket.id, playerName);
       socket.join(room.id);
@@ -117,7 +117,7 @@ io.on('connection', (socket) => {
   });
 
   // Betting
-  socket.on('placeBet', (bet) => {
+  socket.on('placeBet', (bet: { optionId: string; amount: number }) => {
     const roomId = getPlayerRoomId(socket.id);
     if (!roomId) return;
     const success = handlePlaceBet(io, roomId, socket.id, bet.optionId, bet.amount);
@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
   });
 
   // Auction
-  socket.on('submitBid', (amount) => {
+  socket.on('submitBid', (amount: number) => {
     const roomId = getPlayerRoomId(socket.id);
     if (!roomId) return;
     const success = handleSubmitBid(io, roomId, socket.id, amount);
@@ -151,7 +151,7 @@ io.on('connection', (socket) => {
   });
 
   // Bot management
-  socket.on('addBots', (count) => {
+  socket.on('addBots', (count: number) => {
     try {
       const room = addBots(count);
       io.to(room.id).emit('roomUpdate', room);

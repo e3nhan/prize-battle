@@ -115,8 +115,8 @@ export function resolveAuction(
   let effectResult: string | undefined;
 
   if (winnerId) {
-    const winner = players.find((p) => p.id === winnerId)!;
-    const others = players.filter((p) => p.id !== winnerId);
+    const winner = players.find((p: Player) => p.id === winnerId)!;
+    const others = players.filter((p: Player) => p.id !== winnerId);
 
     switch (box.type) {
       case 'diamond': {
@@ -170,12 +170,12 @@ function applySpecialEffect(
   players: Player[],
   playerShields: Set<string>,
 ): string {
-  const winner = players.find((p) => p.id === winnerId)!;
-  const others = players.filter((p) => p.id !== winnerId);
+  const winner = players.find((p: Player) => p.id === winnerId)!;
+  const others = players.filter((p: Player) => p.id !== winnerId);
 
   switch (effect.type) {
     case 'steal': {
-      const richest = others.sort((a, b) => b.chips - a.chips)[0];
+      const richest = others.sort((a: Player, b: Player) => b.chips - a.chips)[0];
       if (richest) {
         const stealAmount = Math.floor(richest.chips * effect.amount);
         richest.chips -= stealAmount;
@@ -197,7 +197,7 @@ function applySpecialEffect(
     }
 
     case 'redistribute': {
-      const total = players.reduce((sum, p) => sum + p.chips, 0);
+      const total = players.reduce((sum: number, p: Player) => sum + p.chips, 0);
       const avg = Math.floor(total / players.length);
       const remainder = total - avg * players.length;
       for (let i = 0; i < players.length; i++) {

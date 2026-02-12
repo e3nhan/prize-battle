@@ -2,6 +2,7 @@ import type {
   BettingState,
   BetResult,
   BetType,
+  BetOption,
   PlayerBet,
   Player,
   DiceAnimationData,
@@ -51,7 +52,7 @@ export function placeBet(
   const minBet = getMinBet(playerChips);
   if (amount < minBet || amount > playerChips) return false;
 
-  const option = state.options.find((o) => o.id === optionId);
+  const option = state.options.find((o: BetOption) => o.id === optionId);
   if (!option) return false;
 
   state.playerBets[playerId] = {
@@ -108,7 +109,7 @@ function resolvePoolBetting(
 
   for (let i = 0; i < winnerIds.length; i++) {
     const playerId = winnerIds[i];
-    const player = players.find((p) => p.id === playerId)!;
+    const player = players.find((p: Player) => p.id === playerId)!;
     const bet = state.playerBets[playerId];
 
     let share: number;
@@ -210,7 +211,7 @@ function resolveMysteryPickBet(state: BettingState, players: Player[]): BetResul
   }
 
   const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
-    const box = boxes.find((b) => b.id === bet.optionId);
+    const box = boxes.find((b: { id: string; content: string; multiplier: number }) => b.id === bet.optionId);
     if (!box || box.multiplier === 0) return 0;
     return box.multiplier / (boxPickers[bet.optionId] || 1);
   });
@@ -218,7 +219,7 @@ function resolveMysteryPickBet(state: BettingState, players: Player[]): BetResul
   const animationData: MysteryAnimationData = {
     type: 'mystery',
     boxes,
-    revealOrder: boxes.map((b) => b.id),
+    revealOrder: boxes.map((b: { id: string }) => b.id),
   };
 
   return { winningOptionId: 'mystery_result', animationData, playerResults };
@@ -226,7 +227,7 @@ function resolveMysteryPickBet(state: BettingState, players: Player[]): BetResul
 
 function resolveDiceExactBet(state: BettingState, players: Player[]): BetResult {
   const dice = rollDice(2);
-  const total = dice.reduce((a, b) => a + b, 0);
+  const total = dice.reduce((a: number, b: number) => a + b, 0);
   const exactWinner = `exact_${total}`;
   const rangeWinner = getDiceExactRangeWinner(total);
 
@@ -238,7 +239,7 @@ function resolveDiceExactBet(state: BettingState, players: Player[]): BetResult 
   };
 
   const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
-    const option = state.options.find((o) => o.id === bet.optionId);
+    const option = state.options.find((o: BetOption) => o.id === bet.optionId);
     if (!option) return 0;
     if (bet.optionId === exactWinner || bet.optionId === rangeWinner) {
       return option.odds;

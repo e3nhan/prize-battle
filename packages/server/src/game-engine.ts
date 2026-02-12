@@ -1,6 +1,7 @@
 import type { Server, Socket } from 'socket.io';
 import type {
   Room,
+  Player,
   GameState,
   GamePhase,
   AuctionBox,
@@ -291,7 +292,7 @@ export function handlePlaceBet(
   const gs = room.gameState;
   if (!gs || gs.phase !== 'betting_round' || !gs.bettingState) return false;
 
-  const player = room.players.find((p) => p.id === playerId);
+  const player = room.players.find((p: Player) => p.id === playerId);
   if (!player) return false;
 
   const success = placeBet(gs.bettingState, playerId, optionId, amount, player.chips);
@@ -326,7 +327,7 @@ export function handleSubmitBid(
   const gs = room.gameState;
   if (!gs || gs.phase !== 'auction_round' || !gs.auctionState) return false;
 
-  const player = room.players.find((p) => p.id === playerId);
+  const player = room.players.find((p: Player) => p.id === playerId);
   if (!player) return false;
 
   const success = submitBid(gs.auctionState, playerId, amount, player.chips);

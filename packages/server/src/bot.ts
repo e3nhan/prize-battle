@@ -19,7 +19,7 @@ export function addBots(count: number): Room {
   const room = getOrCreateMainRoom();
   if (room.status !== 'waiting') throw new Error('遊戲已開始，無法新增電腦玩家');
 
-  const currentBotCount = room.players.filter((p) => isBot(p.id)).length;
+  const currentBotCount = room.players.filter((p: Player) => isBot(p.id)).length;
   const available = room.maxPlayers - room.players.length;
   const toAdd = Math.min(count, available);
 
@@ -42,7 +42,7 @@ export function addBots(count: number): Room {
 export function removeBots(): Room {
   const room = getOrCreateMainRoom();
   if (room.status !== 'waiting') throw new Error('遊戲已開始，無法移除電腦玩家');
-  room.players = room.players.filter((p) => !isBot(p.id));
+  room.players = room.players.filter((p: Player) => !isBot(p.id));
   return room;
 }
 
@@ -59,7 +59,7 @@ export function scheduleBotBets(io: TypedServer, roomId: string): void {
   const gs = room.gameState;
   if (!gs?.bettingState) return;
 
-  const bots = room.players.filter((p) => isBot(p.id));
+  const bots = room.players.filter((p: Player) => isBot(p.id));
   const options = gs.bettingState.options;
 
   for (const bot of bots) {
@@ -84,7 +84,7 @@ export function scheduleBotBids(io: TypedServer, roomId: string): void {
   const gs = room.gameState;
   if (!gs?.auctionState) return;
 
-  const bots = room.players.filter((p) => isBot(p.id));
+  const bots = room.players.filter((p: Player) => isBot(p.id));
 
   for (const bot of bots) {
     const delay = 1000 + Math.random() * 2000; // 1-3 seconds
