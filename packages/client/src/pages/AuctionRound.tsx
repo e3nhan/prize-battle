@@ -1,0 +1,155 @@
+import { motion } from 'framer-motion';
+import { useGameStore } from '../stores/gameStore';
+import { getSocket } from '../hooks/useSocket';
+import { GAME_CONFIG } from '@prize-battle/shared';
+import Timer from '../components/Timer';
+import ChipDisplay from '../components/ChipDisplay';
+import BidInput from '../components/BidInput';
+
+export default function AuctionRound() {
+  const auctionState = useGameStore((s) => s.auctionState);
+  const auctionResult = useGameStore((s) => s.auctionResult);
+  const phase = useGameStore((s) => s.phase);
+  const timeLeft = useGameStore((s) => s.timeLeft);
+  const room = useGameStore((s) => s.room);
+  const playerId = useGameStore((s) => s.playerId);
+  const hasSubmittedBid = useGameStore((s) => s.hasSubmittedBid);
+  const setHasSubmittedBid = useGameStore((s) => s.setHasSubmittedBid);
+
+  if (!auctionState || !room) return null;
+
+  const me = room.players.find((p) => p.id === playerId);
+  const myChips = me?.chips ?? 0;
+
+  const handleSubmitBid = (amount: number) => {
+    getSocket().emit('submitBid', amount);
+    setHasSubmittedBid(true);
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
+
+  // Intro
+  if (phase === 'auction_intro') {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="text-center"
+        >
+          <p className="text-6xl mb-4">📦</p>
+          <h2 className="text-3xl font-black text-gold mb-2">拍賣戰</h2>
+          <p className="text-gray-400">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 個寶箱，暗標出價！</p>
+          <p className="text-gray-500 text-sm mt-2">最高價者得標，同價流標</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Result
+  if ((phase === 'auction_reveal' || phase === 'auction_result') && auctionResult) {
+    const isWinner = auctionResult.winnerId === playerId;
+    const myNewChips = auctionResult.playerChipsAfter[playerId!] ?? myChips;
+
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="text-center space-y-4"
+        >
+          {auctionResult.winnerId === null ? (
+            <>
+              <p className="text-4xl">🚫</p>
+              <h2 className="text-2xl font-bold text-gray-400">流標</h2>
+            </>
+          ) : isWinner ? (
+            <>
+              <p className="text-4xl">
+                {auctionResult.box.type === 'diamond' ? '💎' :
+                 auctionResult.box.type === 'bomb' ? '💀' :
+                 auctionResult.box.type === 'mystery' ? '🎭' : '📦'}
+              </p>
+              <h2 className="text-2xl font-bold text-gold">你得標了！</h2>
+              <p className="text-lg">出價: 🪙{auctionResult.winningBid}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-4xl">👀</p>
+              <h2 className="text-2xl font-bold text-gray-300">
+                {room.players.find((p) => p.id === auctionResult.winnerId)?.name} 得標
+              </h2>
+            </>
+          )}
+
+          {auctionResult.effectResult && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-lg text-neon-blue"
+            >
+              {auctionResult.effectResult}
+            </motion.p>
+          )}
+
+          <ChipDisplay amount={myNewChips} size="lg" />
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Bidding UI
+  return (
+    <div className="h-full flex flex-col p-4">
+      {/* Header */}
+      <div className="text-center mb-3">
+        <p className="text-sm text-gray-400">
+          寶箱 {auctionState.roundNumber} / {GAME_CONFIG.TOTAL_AUCTION_ITEMS}
+          {auctionState.remainingBoxes > 0 && ` · 剩餘 ${auctionState.remainingBoxes} 個`}
+        </p>
+        <ChipDisplay amount={myChips} size="sm" />
+      </div>
+
+      {/* Timer */}
+      <Timer seconds={timeLeft} total={GAME_CONFIG.AUCTION_TIME} />
+
+      {/* Box display */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="my-4 p-6 rounded-2xl bg-secondary border border-gray-700 text-center"
+      >
+        <p className="text-5xl mb-3">📦</p>
+        <h3 className="text-xl font-bold text-gold mb-2">
+          {auctionState.currentBox.displayName}
+        </h3>
+        <p className="text-gray-400 italic">
+          「{auctionState.currentBox.hint}」
+        </p>
+      </motion.div>
+
+      {/* Bid input or waiting */}
+      {hasSubmittedBid ? (
+        <div className="flex-1 flex items-center justify-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="text-center"
+          >
+            <p className="text-4xl mb-2">✅</p>
+            <p className="text-xl font-bold text-neon-green">已出價</p>
+            <p className="text-gray-400 mt-1">等待其他玩家...</p>
+          </motion.div>
+        </div>
+      ) : (
+        <div className="flex-1">
+          <BidInput
+            min={GAME_CONFIG.MIN_BID}
+            max={myChips}
+            onSubmit={handleSubmitBid}
+            disabled={hasSubmittedBid}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
