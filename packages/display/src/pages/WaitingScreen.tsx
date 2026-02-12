@@ -73,6 +73,14 @@ export default function WaitingScreen() {
               {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64" />}
             </div>
             <p className="text-gray-400 mt-4">掃碼加入遊戲</p>
+            <a
+              href={import.meta.env.DEV
+                ? `${window.location.protocol}//${window.location.hostname}:5173`
+                : '/'}
+              className="text-gold/60 hover:text-gold transition-colors text-sm mt-2 inline-block"
+            >
+              📱 切換至手機玩家模式
+            </a>
           </motion.div>
 
           {/* Players */}

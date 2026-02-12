@@ -70,6 +70,15 @@ export default function JoinRoom() {
         >
           🚀 加入遊戲
         </button>
+
+        <a
+          href={import.meta.env.DEV
+            ? `${window.location.protocol}//${window.location.hostname}:5174/display/`
+            : '/display/'}
+          className="block text-center text-gray-500 hover:text-gold transition-colors text-sm mt-2"
+        >
+          🖥️ 切換至大螢幕投放模式
+        </a>
       </motion.div>
     </div>
   );
