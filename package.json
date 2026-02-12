@@ -1,6 +1,10 @@
 {
   "name": "prize-battle",
   "private": true,
+  "packageManager": "pnpm@10.29.3",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "pnpm --filter shared build && concurrently \"pnpm --filter shared dev\" \"pnpm --filter server dev\" \"pnpm --filter client dev\" \"pnpm --filter display dev\"",
     "build": "pnpm --filter shared build && pnpm --filter server build && pnpm --filter client build && pnpm --filter display build",
