@@ -14,6 +14,7 @@ import {
 import type { ServerToClientEvents, ClientToServerEvents } from '@prize-battle/shared';
 import { createBettingState, placeBet, resolveBetting } from './betting.js';
 import { createAuctionBoxes, createAuctionState, submitBid, resolveAuction } from './auction.js';
+import { scheduleBotBets, scheduleBotBids } from './bot.js';
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -95,6 +96,9 @@ function startNextBettingRound(io: TypedServer, roomId: string): void {
   io.to(roomId).emit('bettingRoundStart', bettingState);
   io.to(`display_${roomId}`).emit('bettingRoundStart', bettingState);
 
+  // Schedule bot actions
+  scheduleBotBets(io, roomId);
+
   // Start countdown
   startTimer(io, roomId, GAME_CONFIG.BETTING_TIME, () => {
     resolveBettingRound(io, roomId);
@@ -173,6 +177,9 @@ function startNextAuctionRound(io: TypedServer, roomId: string): void {
   emitPhaseChange(io, roomId, 'auction_round');
   io.to(roomId).emit('auctionRoundStart', auctionState);
   io.to(`display_${roomId}`).emit('auctionRoundStart', auctionState);
+
+  // Schedule bot actions
+  scheduleBotBids(io, roomId);
 
   // Start countdown
   startTimer(io, roomId, GAME_CONFIG.AUCTION_TIME, () => {

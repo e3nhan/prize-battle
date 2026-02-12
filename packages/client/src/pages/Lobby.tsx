@@ -12,16 +12,24 @@ export default function Lobby() {
   const me = room.players.find((p) => p.id === playerId);
   const isReady = me?.isReady ?? false;
 
+  const hasBots = room.players.some((p) => p.id.startsWith('bot_'));
+
   const handleReady = () => {
     getSocket().emit('playerReady');
   };
 
+  const handleAddBot = () => {
+    getSocket().emit('addBots', 1);
+  };
+
+  const handleRemoveBots = () => {
+    getSocket().emit('removeBots');
+  };
+
   return (
     <div className="h-full flex flex-col p-6">
-      {/* Room code */}
       <div className="text-center mb-6">
-        <p className="text-sm text-gray-400">房間碼</p>
-        <p className="text-3xl font-black text-gold tracking-[0.4em]">{room.id}</p>
+        <p className="text-xl font-bold text-gold">🎰 獎金爭奪戰</p>
         <p className="text-sm text-gray-500 mt-1">
           {room.players.length} / {room.maxPlayers} 人
         </p>
@@ -72,6 +80,30 @@ export default function Lobby() {
           </div>
         ))}
       </div>
+
+      {/* Bot controls */}
+      {countdown === null && (
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={handleAddBot}
+            disabled={room.players.length >= room.maxPlayers}
+            className="flex-1 py-2 rounded-lg text-sm font-bold bg-secondary border border-gray-600
+              text-gray-300 hover:border-gold hover:text-gold transition-all
+              disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          >
+            + 電腦玩家
+          </button>
+          {hasBots && (
+            <button
+              onClick={handleRemoveBots}
+              className="flex-1 py-2 rounded-lg text-sm font-bold bg-secondary border border-gray-600
+                text-gray-300 hover:border-accent hover:text-accent transition-all active:scale-95"
+            >
+              移除電腦
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Countdown or Ready button */}
       {countdown !== null ? (

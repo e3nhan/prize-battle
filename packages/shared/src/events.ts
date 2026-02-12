@@ -36,19 +36,21 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   // 房間
-  createRoom: (playerName: string) => void;
-  joinRoom: (roomId: string, playerName: string) => void;
+  quickJoin: (playerName: string) => void;
   playerReady: () => void;
 
   // 大螢幕
-  joinDisplay: (roomId: string) => void;
-  createAndJoinDisplay: () => void;
+  joinDisplay: () => void;
 
   // 押注
   placeBet: (bet: { optionId: string; amount: number }) => void;
 
   // 拍賣
   submitBid: (amount: number) => void;
+
+  // 電腦玩家
+  addBots: (count: number) => void;
+  removeBots: () => void;
 
   // 重新開始
   playAgain: () => void;

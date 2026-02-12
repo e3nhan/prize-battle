@@ -7,14 +7,14 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import type { ServerToClientEvents, ClientToServerEvents } from '@prize-battle/shared';
 import {
-  createRoom,
-  joinRoom,
+  getOrCreateMainRoom,
+  joinMainRoom,
   setPlayerReady,
   isAllReady,
   handleDisconnect,
   getRoomBySocketId,
   getPlayerRoomId,
-  getRoom,
+  getMainRoom,
   resetRoom,
 } from './room.js';
 import {
@@ -23,6 +23,7 @@ import {
   handleSubmitBid,
   handlePlayAgain,
 } from './game-engine.js';
+import { addBots, removeBots, autoReadyBots } from './bot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,8 +52,8 @@ if (isProduction) {
 }
 
 // API endpoint for room info
-app.get('/api/room/:roomId', (req, res) => {
-  const room = getRoom(req.params.roomId);
+app.get('/api/room', (_req, res) => {
+  const room = getMainRoom();
   if (!room) {
     res.status(404).json({ error: 'Room not found' });
     return;
@@ -60,28 +61,20 @@ app.get('/api/room/:roomId', (req, res) => {
   res.json({ id: room.id, playerCount: room.players.length, status: room.status });
 });
 
+// Initialize the main room on startup
+getOrCreateMainRoom();
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
-  socket.on('createRoom', (playerName) => {
+  socket.on('quickJoin', (playerName) => {
     try {
-      const room = createRoom(socket.id, playerName);
-      socket.join(room.id);
-      socket.emit('roomUpdate', room);
-      console.log(`Room ${room.id} created by ${playerName}`);
-    } catch (err: any) {
-      socket.emit('error', err.message);
-    }
-  });
-
-  socket.on('joinRoom', (roomId, playerName) => {
-    try {
-      const room = joinRoom(roomId, socket.id, playerName);
+      const room = joinMainRoom(socket.id, playerName);
       socket.join(room.id);
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
-      console.log(`${playerName} joined room ${room.id}`);
+      console.log(`${playerName} joined the game`);
     } catch (err: any) {
       socket.emit('error', err.message);
     }
@@ -114,24 +107,13 @@ io.on('connection', (socket) => {
   });
 
   // Display screen
-  socket.on('joinDisplay', (roomId) => {
-    const room = getRoom(roomId);
-    socket.join(`display_${roomId.toUpperCase()}`);
-    if (room) {
-      socket.emit('roomUpdate', room);
-      if (room.gameState) {
-        socket.emit('gameStart', room.gameState);
-      }
+  socket.on('joinDisplay', () => {
+    const room = getOrCreateMainRoom();
+    socket.join(`display_${room.id}`);
+    socket.emit('roomUpdate', room);
+    if (room.gameState) {
+      socket.emit('gameStart', room.gameState);
     }
-  });
-
-  socket.on('createAndJoinDisplay', () => {
-    // Create a room with no players yet and join display
-    // The display will show the room code / QR
-    const roomId = createDisplayRoom();
-    socket.join(`display_${roomId}`);
-    const room = getRoom(roomId);
-    if (room) socket.emit('roomUpdate', room);
   });
 
   // Betting
@@ -158,13 +140,37 @@ io.on('connection', (socket) => {
   socket.on('playAgain', () => {
     const roomId = getPlayerRoomId(socket.id);
     if (!roomId) return;
-    const room = getRoom(roomId);
+    const room = getMainRoom();
     if (!room) return;
 
     handlePlayAgain(io, roomId);
     resetRoom(room);
+    autoReadyBots(room);
     io.to(room.id).emit('roomUpdate', room);
     io.to(`display_${room.id}`).emit('roomUpdate', room);
+  });
+
+  // Bot management
+  socket.on('addBots', (count) => {
+    try {
+      const room = addBots(count);
+      io.to(room.id).emit('roomUpdate', room);
+      io.to(`display_${room.id}`).emit('roomUpdate', room);
+      console.log(`Added ${count} bot(s)`);
+    } catch (err: any) {
+      socket.emit('error', err.message);
+    }
+  });
+
+  socket.on('removeBots', () => {
+    try {
+      const room = removeBots();
+      io.to(room.id).emit('roomUpdate', room);
+      io.to(`display_${room.id}`).emit('roomUpdate', room);
+      console.log('Removed all bots');
+    } catch (err: any) {
+      socket.emit('error', err.message);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -176,16 +182,6 @@ io.on('connection', (socket) => {
     console.log(`Player disconnected: ${socket.id}`);
   });
 });
-
-// Helper: create empty room for display-first flow
-function createDisplayRoom(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-}
 
 // SPA fallback for production
 if (isProduction) {

@@ -17,14 +17,14 @@ export default function WaitingScreen() {
 
     // In dev mode, client is on port 5173
     const clientPort = import.meta.env.DEV ? '5173' : port;
-    const url = `${protocol}//${host}:${clientPort}?room=${room.id}`;
+    const url = `${protocol}//${host}:${clientPort}`;
 
     QRCode.toDataURL(url, {
       width: 250,
       margin: 2,
       color: { dark: '#ffd700', light: '#0a0a1a' },
     }).then(setQrUrl);
-  }, [room?.id]);
+  }, [room]);
 
   if (!room) {
     return (
@@ -72,8 +72,7 @@ export default function WaitingScreen() {
             <div className="p-4 bg-secondary rounded-2xl border border-gold/30 glow-gold">
               {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64" />}
             </div>
-            <p className="text-2xl font-bold text-gold mt-4 tracking-[0.5em]">{room.id}</p>
-            <p className="text-gray-400 mt-1">掃碼或輸入房間碼加入</p>
+            <p className="text-gray-400 mt-4">掃碼加入遊戲</p>
           </motion.div>
 
           {/* Players */}

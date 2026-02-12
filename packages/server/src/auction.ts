@@ -39,7 +39,6 @@ export function submitBid(
   if (state.playerBids[playerId] !== undefined) return false;
   if (state.timeLeft <= 0) return false;
 
-  // 0 means skip
   if (amount === 0) {
     state.playerBids[playerId] = 0;
     return true;
@@ -49,6 +48,44 @@ export function submitBid(
 
   state.playerBids[playerId] = amount;
   return true;
+}
+
+// Zero-sum helper: transfer chips from sources to target, capped at each source's chips
+function transferChips(
+  target: Player,
+  sources: Player[],
+  totalAmount: number,
+): void {
+  if (sources.length === 0 || totalAmount <= 0) return;
+  const perPlayer = Math.floor(totalAmount / sources.length);
+  let remainder = totalAmount - perPlayer * sources.length;
+
+  for (const source of sources) {
+    let take = perPlayer + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    take = Math.min(take, source.chips);
+    source.chips -= take;
+    target.chips += take;
+  }
+}
+
+// Zero-sum helper: transfer chips from source to destinations
+function distributeChips(
+  source: Player,
+  destinations: Player[],
+  totalAmount: number,
+): void {
+  if (destinations.length === 0 || totalAmount <= 0) return;
+  const actual = Math.min(totalAmount, source.chips);
+  const perPlayer = Math.floor(actual / destinations.length);
+  let remainder = actual - perPlayer * destinations.length;
+
+  source.chips -= actual;
+  for (const dest of destinations) {
+    const give = perPlayer + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    dest.chips += give;
+  }
 }
 
 export function resolveAuction(
@@ -65,7 +102,6 @@ export function resolveAuction(
   let winningBid = 0;
 
   if (bids.length > 0) {
-    // Check for tie at highest bid
     const highestBid = bids[0][1];
     const tiedBidders = bids.filter(([, amount]) => amount === highestBid);
 
@@ -73,7 +109,6 @@ export function resolveAuction(
       winnerId = tiedBidders[0][0];
       winningBid = highestBid;
     }
-    // Tied = no winner (流標)
   }
 
   const playerChipsAfter: Record<string, number> = {};
@@ -81,36 +116,39 @@ export function resolveAuction(
 
   if (winnerId) {
     const winner = players.find((p) => p.id === winnerId)!;
-    winner.chips -= winningBid; // Pay bid amount
+    const others = players.filter((p) => p.id !== winnerId);
 
-    // Apply box effect
     switch (box.type) {
-      case 'diamond':
-        winner.chips += Math.floor(winningBid * (1 + box.value)); // +200% = get back 3x
-        effectResult = `恭喜！鑽石寶箱，獲得 ${Math.floor(winningBid * box.value)} 籌碼！`;
+      case 'diamond': {
+        const transferAmount = Math.floor(winningBid * box.value);
+        transferChips(winner, others, transferAmount);
+        effectResult = `恭喜！鑽石寶箱，從其他玩家獲得 ${transferAmount} 籌碼！`;
         break;
-      case 'normal':
-        winner.chips += Math.floor(winningBid * (1 + box.value));
-        effectResult = `普通寶箱，獲得 ${Math.floor(winningBid * box.value)} 籌碼`;
+      }
+      case 'normal': {
+        const transferAmount = Math.floor(winningBid * box.value);
+        transferChips(winner, others, transferAmount);
+        effectResult = `普通寶箱，從其他玩家獲得 ${transferAmount} 籌碼`;
         break;
-      case 'bomb':
+      }
+      case 'bomb': {
         if (playerShields.has(winnerId)) {
-          winner.chips += winningBid; // Refund
           effectResult = '炸彈寶箱！但護盾保護了你！';
           playerShields.delete(winnerId);
         } else {
-          // Already paid, lose 80% = only get back 20%
-          winner.chips += Math.floor(winningBid * 0.2);
-          effectResult = `炸彈寶箱！損失 ${Math.floor(winningBid * 0.8)} 籌碼！`;
+          const penalty = Math.floor(winningBid * 0.8);
+          distributeChips(winner, others, penalty);
+          effectResult = `炸彈寶箱！損失 ${penalty} 籌碼給其他玩家！`;
         }
         break;
-      case 'mystery':
-        effectResult = applySpecialEffect(box.specialEffect!, winnerId, players, playerShields);
+      }
+      case 'mystery': {
+        effectResult = applySpecialEffect(box.specialEffect!, winnerId, winningBid, players, playerShields);
         break;
+      }
     }
   }
 
-  // Ensure no negative chips
   for (const player of players) {
     if (player.chips < 0) player.chips = 0;
     playerChipsAfter[player.id] = player.chips;
@@ -128,16 +166,16 @@ export function resolveAuction(
 function applySpecialEffect(
   effect: SpecialEffect,
   winnerId: string,
+  winningBid: number,
   players: Player[],
   playerShields: Set<string>,
 ): string {
   const winner = players.find((p) => p.id === winnerId)!;
+  const others = players.filter((p) => p.id !== winnerId);
 
   switch (effect.type) {
     case 'steal': {
-      const richest = players
-        .filter((p) => p.id !== winnerId)
-        .sort((a, b) => b.chips - a.chips)[0];
+      const richest = others.sort((a, b) => b.chips - a.chips)[0];
       if (richest) {
         const stealAmount = Math.floor(richest.chips * effect.amount);
         richest.chips -= stealAmount;
@@ -148,7 +186,6 @@ function applySpecialEffect(
     }
 
     case 'swap': {
-      const others = players.filter((p) => p.id !== winnerId);
       const target = others[Math.floor(Math.random() * others.length)];
       if (target) {
         const temp = winner.chips;
@@ -162,19 +199,21 @@ function applySpecialEffect(
     case 'redistribute': {
       const total = players.reduce((sum, p) => sum + p.chips, 0);
       const avg = Math.floor(total / players.length);
-      for (const p of players) {
-        p.chips = avg;
+      const remainder = total - avg * players.length;
+      for (let i = 0; i < players.length; i++) {
+        players[i].chips = avg + (i < remainder ? 1 : 0);
       }
       return `平均重分配！所有人籌碼變為 ${avg}！`;
     }
 
     case 'double_or_nothing': {
+      const transferAmount = Math.floor(winningBid * 1.5);
       if (Math.random() < 0.5) {
-        winner.chips *= 2;
-        return `翻倍！籌碼變為 ${winner.chips}！`;
+        transferChips(winner, others, transferAmount);
+        return `大獎！從其他玩家獲得 ${transferAmount} 籌碼！`;
       } else {
-        winner.chips = 0;
-        return '歸零！所有籌碼消失了！';
+        distributeChips(winner, others, transferAmount);
+        return `慘！損失 ${transferAmount} 籌碼給其他玩家！`;
       }
     }
 

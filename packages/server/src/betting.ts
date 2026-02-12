@@ -1,4 +1,3 @@
-import type { Server } from 'socket.io';
 import type {
   BettingState,
   BetResult,
@@ -18,11 +17,9 @@ import {
   spinRoulette,
   flipCoins,
   generateMysteryBoxes,
-  resolveDiceExact,
   getDiceExactRangeWinner,
   resolveGroupPredict,
 } from '@prize-battle/shared';
-import type { ServerToClientEvents, ClientToServerEvents } from '@prize-battle/shared';
 
 export function createBettingState(
   type: BetType,
@@ -48,7 +45,7 @@ export function placeBet(
   amount: number,
   playerChips: number,
 ): boolean {
-  if (state.playerBets[playerId]) return false; // Already bet
+  if (state.playerBets[playerId]) return false;
   if (state.timeLeft <= 0) return false;
 
   const minBet = getMinBet(playerChips);
@@ -66,10 +63,83 @@ export function placeBet(
   return true;
 }
 
-export function resolveBetting(
+// ===== Zero-sum pool helper =====
+// All bets go into a pool. Winners split the pool by weight. Losers lose their bet.
+function resolvePoolBetting(
   state: BettingState,
   players: Player[],
-): BetResult {
+  getWinnerWeight: (playerId: string, bet: PlayerBet) => number,
+): BetResult['playerResults'] {
+  const playerResults: BetResult['playerResults'] = {};
+
+  let pool = 0;
+  let totalWeight = 0;
+  const winnerWeights: Record<string, number> = {};
+
+  for (const player of players) {
+    const bet = state.playerBets[player.id];
+    if (!bet) {
+      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
+      continue;
+    }
+
+    pool += bet.amount;
+    const weight = getWinnerWeight(player.id, bet);
+
+    if (weight > 0) {
+      winnerWeights[player.id] = weight;
+      totalWeight += weight;
+    }
+  }
+
+  if (totalWeight === 0) {
+    // No winners - refund all bets
+    for (const player of players) {
+      if (!playerResults[player.id]) {
+        playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
+      }
+    }
+    return playerResults;
+  }
+
+  // Distribute pool to winners by weight
+  let distributed = 0;
+  const winnerIds = Object.keys(winnerWeights);
+
+  for (let i = 0; i < winnerIds.length; i++) {
+    const playerId = winnerIds[i];
+    const player = players.find((p) => p.id === playerId)!;
+    const bet = state.playerBets[playerId];
+
+    let share: number;
+    if (i === winnerIds.length - 1) {
+      share = pool - distributed;
+    } else {
+      share = Math.floor((pool * winnerWeights[playerId]) / totalWeight);
+    }
+    distributed += share;
+
+    const payout = share - bet.amount;
+    player.chips += payout;
+    playerResults[playerId] = { won: payout > 0, payout, newChips: player.chips };
+  }
+
+  // Losers
+  for (const player of players) {
+    if (playerResults[player.id]) continue;
+    const bet = state.playerBets[player.id];
+    if (!bet) {
+      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
+      continue;
+    }
+    player.chips -= bet.amount;
+    playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
+  }
+
+  return playerResults;
+}
+
+export function resolveBetting(state: BettingState, players: Player[]): BetResult {
   switch (state.type) {
     case 'dice_high_low':
       return resolveDiceHighLowBet(state, players);
@@ -90,28 +160,10 @@ function resolveDiceHighLowBet(state: BettingState, players: Player[]): BetResul
   const dice = rollDice(3);
   const { winningOptionId, animationData } = resolveDiceHighLow(dice);
 
-  const playerResults: BetResult['playerResults'] = {};
-
-  for (const player of players) {
-    const bet = state.playerBets[player.id];
-    if (!bet) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
-    if (winningOptionId === '__triple__') {
-      // Triple: everyone loses
-      player.chips -= bet.amount;
-      playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
-    } else if (bet.optionId === winningOptionId) {
-      const payout = bet.amount;
-      player.chips += payout;
-      playerResults[player.id] = { won: true, payout, newChips: player.chips };
-    } else {
-      player.chips -= bet.amount;
-      playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
-    }
-  }
+  const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
+    if (winningOptionId === '__triple__') return 0;
+    return bet.optionId === winningOptionId ? 1 : 0;
+  });
 
   return { winningOptionId, animationData, playerResults };
 }
@@ -119,57 +171,28 @@ function resolveDiceHighLowBet(state: BettingState, players: Player[]): BetResul
 function resolveRouletteBet(state: BettingState, players: Player[]): BetResult {
   const { winningOptionId, animationData } = spinRoulette();
 
-  const playerResults: BetResult['playerResults'] = {};
-  const winOption = state.options.find((o) => o.id === winningOptionId)!;
-
-  for (const player of players) {
-    const bet = state.playerBets[player.id];
-    if (!bet) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
-    if (bet.optionId === winningOptionId) {
-      const payout = bet.amount * winOption.odds;
-      player.chips += payout;
-      playerResults[player.id] = { won: true, payout, newChips: player.chips };
-    } else {
-      player.chips -= bet.amount;
-      playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
-    }
-  }
+  const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
+    return bet.optionId === winningOptionId ? 1 : 0;
+  });
 
   return { winningOptionId, animationData, playerResults };
 }
 
 function resolveCoinMultiplyBet(state: BettingState, players: Player[]): BetResult {
-  // Each player's coin flips are independent
-  const allFlips: ('heads' | 'tails')[] = [];
-  const playerResults: BetResult['playerResults'] = {};
+  const flipResults: Record<string, { won: boolean; animationData: CoinAnimationData }> = {};
   let firstFlipData: CoinAnimationData | null = null;
 
-  for (const player of players) {
-    const bet = state.playerBets[player.id];
-    if (!bet) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
+  for (const [pid, bet] of Object.entries(state.playerBets)) {
     const times = bet.optionId === 'coin_1' ? 1 : bet.optionId === 'coin_2' ? 2 : 3;
-    const multiplier = bet.optionId === 'coin_1' ? 2 : bet.optionId === 'coin_2' ? 4 : 8;
-    const { won, flips, animationData } = flipCoins(times);
-
+    const { won, animationData } = flipCoins(times);
+    flipResults[pid] = { won, animationData };
     if (!firstFlipData) firstFlipData = animationData;
-
-    if (won) {
-      const payout = bet.amount * (multiplier - 1);
-      player.chips += payout;
-      playerResults[player.id] = { won: true, payout, newChips: player.chips };
-    } else {
-      player.chips -= bet.amount;
-      playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
-    }
   }
+
+  const playerResults = resolvePoolBetting(state, players, (pid, bet) => {
+    if (!flipResults[pid]?.won) return 0;
+    return bet.optionId === 'coin_1' ? 2 : bet.optionId === 'coin_2' ? 4 : 8;
+  });
 
   return {
     winningOptionId: 'coin_result',
@@ -180,45 +203,17 @@ function resolveCoinMultiplyBet(state: BettingState, players: Player[]): BetResu
 
 function resolveMysteryPickBet(state: BettingState, players: Player[]): BetResult {
   const boxes = generateMysteryBoxes();
-  const playerResults: BetResult['playerResults'] = {};
 
-  // Count how many players picked each box
-  const boxPickers: Record<string, string[]> = {};
-  for (const [playerId, bet] of Object.entries(state.playerBets)) {
-    if (!boxPickers[bet.optionId]) boxPickers[bet.optionId] = [];
-    boxPickers[bet.optionId].push(playerId);
+  const boxPickers: Record<string, number> = {};
+  for (const bet of Object.values(state.playerBets)) {
+    boxPickers[bet.optionId] = (boxPickers[bet.optionId] || 0) + 1;
   }
 
-  for (const player of players) {
-    const bet = state.playerBets[player.id];
-    if (!bet) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
+  const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
     const box = boxes.find((b) => b.id === bet.optionId);
-    if (!box) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
-    const sharers = boxPickers[bet.optionId]?.length || 1;
-    const effectiveMultiplier = box.multiplier / sharers;
-
-    if (box.multiplier === 0) {
-      // Bomb
-      player.chips -= bet.amount;
-      playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
-    } else {
-      const payout = Math.floor(bet.amount * effectiveMultiplier) - bet.amount;
-      player.chips += payout;
-      playerResults[player.id] = {
-        won: payout > 0,
-        payout,
-        newChips: player.chips,
-      };
-    }
-  }
+    if (!box || box.multiplier === 0) return 0;
+    return box.multiplier / (boxPickers[bet.optionId] || 1);
+  });
 
   const animationData: MysteryAnimationData = {
     type: 'mystery',
@@ -235,7 +230,6 @@ function resolveDiceExactBet(state: BettingState, players: Player[]): BetResult 
   const exactWinner = `exact_${total}`;
   const rangeWinner = getDiceExactRangeWinner(total);
 
-  const playerResults: BetResult['playerResults'] = {};
   const animationData: DiceAnimationData = {
     type: 'dice',
     dice,
@@ -243,62 +237,29 @@ function resolveDiceExactBet(state: BettingState, players: Player[]): BetResult 
     isTriple: false,
   };
 
-  for (const player of players) {
-    const bet = state.playerBets[player.id];
-    if (!bet) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
+  const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
     const option = state.options.find((o) => o.id === bet.optionId);
-    if (!option) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
+    if (!option) return 0;
+    if (bet.optionId === exactWinner || bet.optionId === rangeWinner) {
+      return option.odds;
     }
-
-    const isExactWin = bet.optionId === exactWinner;
-    const isRangeWin = bet.optionId === rangeWinner;
-
-    if (isExactWin || isRangeWin) {
-      const payout = Math.floor(bet.amount * option.odds);
-      player.chips += payout;
-      playerResults[player.id] = { won: true, payout, newChips: player.chips };
-    } else {
-      player.chips -= bet.amount;
-      playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
-    }
-  }
+    return 0;
+  });
 
   return { winningOptionId: exactWinner, animationData, playerResults };
 }
 
 function resolveGroupPredictBet(state: BettingState, players: Player[]): BetResult {
   const betsForPredict: Record<string, { optionId: string; amount: number }> = {};
-
   for (const [pid, bet] of Object.entries(state.playerBets)) {
     betsForPredict[pid] = { optionId: bet.optionId, amount: bet.amount };
   }
 
   const { animationData, bonusPlayers } = resolveGroupPredict(betsForPredict, players.length);
-  const playerResults: BetResult['playerResults'] = {};
 
-  const bonusAmount = 100; // Bonus chips for closest predictors
-
-  for (const player of players) {
-    const bet = state.playerBets[player.id];
-    if (!bet) {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-      continue;
-    }
-
-    const isBonus = bonusPlayers.includes(player.id);
-    if (isBonus) {
-      player.chips += bonusAmount;
-      playerResults[player.id] = { won: true, payout: bonusAmount, newChips: player.chips };
-    } else {
-      playerResults[player.id] = { won: false, payout: 0, newChips: player.chips };
-    }
-  }
+  const playerResults = resolvePoolBetting(state, players, (pid) => {
+    return bonusPlayers.includes(pid) ? 1 : 0;
+  });
 
   return {
     winningOptionId: 'predict_result',

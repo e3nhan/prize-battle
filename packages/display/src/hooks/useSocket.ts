@@ -19,14 +19,14 @@ export function getSocket(): TypedSocket {
   return socket;
 }
 
-export function useDisplaySocket(roomId: string): TypedSocket {
+export function useDisplaySocket(): TypedSocket {
   const socketRef = useRef<TypedSocket>(getSocket());
   const store = useDisplayStore();
 
   useEffect(() => {
     const s = socketRef.current;
 
-    s.emit('joinDisplay', roomId);
+    s.emit('joinDisplay');
 
     s.on('roomUpdate', (room) => store.setRoom(room));
     s.on('gameStart', (state) => store.setGameState(state));
@@ -55,7 +55,7 @@ export function useDisplaySocket(roomId: string): TypedSocket {
       s.off('auctionResult');
       s.off('finalResult');
     };
-  }, [roomId]);
+  }, []);
 
   return socketRef.current;
 }
