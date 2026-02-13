@@ -221,17 +221,21 @@ export function resolveCalcBet(
         note: `投注贏 (下注${betAmount}, 獲得${winPerPerson})`,
       });
     } else {
-      player.chips -= betAmount;
+      // 輸家扣除金額隨倍率放大，允許籌碼為負值
+      const loseAmount = betAmount * multiplier;
+      player.chips -= loseAmount;
       newTxs.push({
         id: String(++txCounter),
         type: 'bet_lose',
         fromPlayerId: playerId,
         targetPlayerId: playerId,
-        amount: betAmount,
+        amount: loseAmount,
         fromNewBalance: player.chips,
         toNewBalance: player.chips,
         timestamp: now,
-        note: `投注輸 (下注${betAmount})`,
+        note: multiplier > 1
+          ? `投注輸 (下注${betAmount} x${multiplier} = -${loseAmount})`
+          : `投注輸 (下注${betAmount})`,
       });
     }
   }
