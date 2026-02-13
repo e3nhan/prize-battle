@@ -151,18 +151,33 @@ export default function BettingRound() {
     );
   }
 
-  // Reveal phase
+  // Reveal phase — show type-specific animation + result when available
   if (phase === 'betting_reveal') {
+    const isDice = bettingState.type === 'dice_high_low' || bettingState.type === 'dice_exact';
+    const diceResult = bettingResult?.animationData as { dice?: number[] } | undefined;
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
-        <motion.div
-          animate={{ rotate: [0, 5, -5, 0] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-          className="text-center"
-        >
-          <p className="text-6xl mb-4">🎲</p>
-          <h2 className="text-2xl font-bold text-gold">開獎中...</h2>
-        </motion.div>
+        {isDice && diceResult?.dice ? (
+          <ClientDiceReveal dice={diceResult.dice} />
+        ) : bettingResult ? (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center"
+          >
+            <p className="text-6xl mb-4">{getRevealEmoji(bettingState.type)}</p>
+            <h2 className="text-2xl font-bold text-gold">揭曉結果！</h2>
+          </motion.div>
+        ) : (
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
+            className="text-center"
+          >
+            <p className="text-6xl mb-4">{getRevealEmoji(bettingState.type)}</p>
+            <h2 className="text-2xl font-bold text-gold">開獎中...</h2>
+          </motion.div>
+        )}
       </div>
     );
   }
@@ -310,6 +325,141 @@ export default function BettingRound() {
             </motion.button>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// --- Helper components for reveal phase ---
+
+function getRevealEmoji(type: string): string {
+  switch (type) {
+    case 'dice_high_low':
+    case 'dice_exact':
+      return '🎲';
+    case 'roulette':
+      return '🎰';
+    case 'coin_multiply':
+      return '🪙';
+    case 'mystery_pick':
+      return '🎁';
+    case 'group_predict':
+      return '🔮';
+    default:
+      return '🎲';
+  }
+}
+
+// Mini dice dot-pattern for client reveal
+function MiniDiceFace({ value }: { value: number }) {
+  const size = 56;
+  const dotSize = 10;
+  const pad = 13;
+  const mid = size / 2;
+
+  const dotPositions: Record<number, [number, number][]> = {
+    1: [[mid, mid]],
+    2: [[pad, size - pad], [size - pad, pad]],
+    3: [[pad, size - pad], [mid, mid], [size - pad, pad]],
+    4: [[pad, pad], [pad, size - pad], [size - pad, pad], [size - pad, size - pad]],
+    5: [[pad, pad], [pad, size - pad], [mid, mid], [size - pad, pad], [size - pad, size - pad]],
+    6: [[pad, pad], [pad, mid], [pad, size - pad], [size - pad, pad], [size - pad, mid], [size - pad, size - pad]],
+  };
+
+  const dots = dotPositions[value] || [];
+
+  return (
+    <div
+      className="relative rounded-xl bg-gradient-to-br from-white to-gray-100"
+      style={{
+        width: size,
+        height: size,
+        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8), 0 4px 12px rgba(0,0,0,0.3)',
+      }}
+    >
+      {dots.map(([x, y], i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: dotSize,
+            height: dotSize,
+            left: x - dotSize / 2,
+            top: y - dotSize / 2,
+            background: 'radial-gradient(circle at 35% 35%, #444, #111)',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ClientDiceReveal({ dice }: { dice: number[] }) {
+  const [displayDice, setDisplayDice] = useState(dice.map(() => 1));
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    let frame = 0;
+    const total = 20;
+    const iv = setInterval(() => {
+      frame++;
+      if (frame < total) {
+        setDisplayDice(dice.map(() => Math.floor(Math.random() * 6) + 1));
+      } else {
+        setDisplayDice(dice);
+        setSettled(true);
+        clearInterval(iv);
+      }
+    }, 80);
+    return () => clearInterval(iv);
+  }, [dice]);
+
+  const sum = dice.reduce((a, b) => a + b, 0);
+  const isTriple = dice.length >= 3 && dice.every((d) => d === dice[0]);
+
+  return (
+    <div className="flex flex-col items-center gap-5">
+      <div className="flex gap-3">
+        {displayDice.map((d, i) => (
+          <motion.div
+            key={i}
+            animate={
+              settled
+                ? { y: [0, -12, 0], scale: [0.95, 1.08, 1] }
+                : { y: [0, -8, 0], rotateZ: [0, -8, 8, 0] }
+            }
+            transition={
+              settled
+                ? { duration: 0.4, delay: i * 0.1 }
+                : { duration: 0.3, repeat: Infinity, delay: i * 0.08 }
+            }
+          >
+            <MiniDiceFace value={d} />
+          </motion.div>
+        ))}
+      </div>
+
+      {settled && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          {isTriple ? (
+            <p className="text-2xl font-black text-accent">豹子！</p>
+          ) : (
+            <>
+              <p className="text-4xl font-black text-gold">{sum}</p>
+              <p className="text-lg font-bold mt-1">
+                {sum >= 11 ? (
+                  <span className="text-neon-blue">大！</span>
+                ) : (
+                  <span className="text-neon-pink">小！</span>
+                )}
+              </p>
+            </>
+          )}
+        </motion.div>
       )}
     </div>
   );
