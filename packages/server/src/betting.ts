@@ -56,10 +56,17 @@ export function placeBet(
   const option = state.options.find((o: BetOption) => o.id === optionId);
   if (!option) return false;
 
-  // group_predict 時驗證 choiceId 是合法的 A/B 選項
-  if (choiceId) {
+  // group_predict 強制驗證：必須同時有 choiceId (A/B) 和 predict_N optionId
+  if (state.type === 'group_predict') {
+    if (!choiceId) return false;
+    if (!optionId.startsWith('predict_')) return false;
     const choiceOption = state.options.find((o: BetOption) => o.id === choiceId);
-    if (!choiceOption) return false;
+    if (!choiceOption || !choiceId.startsWith('choice_')) return false;
+    // 強制金額為 minBet，避免不同金額造成 pool 不公平
+    amount = minBet;
+  } else if (choiceId) {
+    // 非 group_predict 不應有 choiceId
+    return false;
   }
 
   state.playerBets[playerId] = {

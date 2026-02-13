@@ -70,12 +70,22 @@ export function scheduleBotBets(io: TypedServer, roomId: string): void {
       if (!gs.bettingState || gs.phase !== 'betting_round') return;
       if (gs.bettingState.playerBets[bot.id]) return;
 
-      const option = options[Math.floor(Math.random() * options.length)];
       const minBet = getMinBet(bot.chips);
-      const maxBet = Math.max(minBet, Math.floor(bot.chips * 0.5));
-      const amount = minBet + Math.floor(Math.random() * (maxBet - minBet + 1));
 
-      handlePlaceBet(io, roomId, bot.id, option.id, amount);
+      if (gs.bettingState.type === 'group_predict') {
+        // group_predict: 需要分開選 A/B 和預測人數
+        const choiceOptions = options.filter((o) => o.id.startsWith('choice_'));
+        const predictOptions = options.filter((o) => o.id.startsWith('predict_'));
+        if (choiceOptions.length === 0 || predictOptions.length === 0) return;
+        const choice = choiceOptions[Math.floor(Math.random() * choiceOptions.length)];
+        const predict = predictOptions[Math.floor(Math.random() * predictOptions.length)];
+        handlePlaceBet(io, roomId, bot.id, predict.id, minBet, choice.id);
+      } else {
+        const option = options[Math.floor(Math.random() * options.length)];
+        const maxBet = Math.max(minBet, Math.floor(bot.chips * 0.5));
+        const amount = minBet + Math.floor(Math.random() * (maxBet - minBet + 1));
+        handlePlaceBet(io, roomId, bot.id, option.id, amount);
+      }
     }, delay);
   }
 }

@@ -186,8 +186,8 @@ export function resolveGroupPredict(
   const predictions: Record<string, number> = {};
 
   for (const [playerId, bet] of Object.entries(playerBets)) {
-    // choiceId 記錄 A/B 選擇（新格式），fallback 舊格式直接從 optionId 讀
-    const choice = bet.choiceId ?? bet.optionId;
+    // choiceId 記錄 A/B 選擇（server 端已強制驗證必須存在）
+    const choice = bet.choiceId;
     if (choice === 'choice_A') choiceA++;
     else if (choice === 'choice_B') choiceB++;
 
