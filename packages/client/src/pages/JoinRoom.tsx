@@ -5,7 +5,7 @@ import { getSocket } from '../hooks/useSocket';
 
 const BUY_IN_PRESETS = [50, 100, 200, 500];
 
-export default function JoinRoom() {
+export default function JoinRoom({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('');
   const [buyIn, setBuyIn] = useState(100);
   const error = useGameStore((s) => s.error);
@@ -109,6 +109,15 @@ export default function JoinRoom() {
             active:scale-95 glow-gold"
         >
           🚀 加入遊戲（投注 {buyIn} 元）
+        </button>
+
+        <button
+          onClick={onBack}
+          className="w-full py-3 rounded-xl text-base font-bold transition-all
+            bg-secondary text-gray-400 border border-gray-600
+            hover:border-gray-400 active:scale-95"
+        >
+          返回首頁
         </button>
 
         <a

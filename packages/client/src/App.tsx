@@ -18,13 +18,13 @@ function getInitialMode(): AppMode {
   return (sessionStorage.getItem('appMode') as AppMode) || 'home';
 }
 
-function GameApp() {
+function GameApp({ onBack }: { onBack: () => void }) {
   useSocket();
 
   const screen = useGameStore((s) => s.screen);
   const phase = useGameStore((s) => s.phase);
 
-  if (screen === 'join') return <JoinRoom />;
+  if (screen === 'join') return <JoinRoom onBack={onBack} />;
   if (screen === 'lobby') return <Lobby />;
   if (screen === 'result') return <Result />;
 
@@ -54,7 +54,7 @@ function GameApp() {
     }
   }
 
-  return <JoinRoom />;
+  return <JoinRoom onBack={onBack} />;
 }
 
 function CalcApp({ onBack }: { onBack: () => void }) {
@@ -88,5 +88,5 @@ export default function App() {
     return <CalcApp onBack={handleBack} />;
   }
 
-  return <GameApp />;
+  return <GameApp onBack={handleBack} />;
 }
