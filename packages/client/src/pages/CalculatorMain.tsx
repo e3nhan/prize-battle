@@ -87,16 +87,14 @@ export default function CalculatorMain() {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-sm"
               >
-                <span>{getPlayerAvatar(tx.fromPlayerId)}</span>
-                <span className="text-gray-400">→</span>
-                <span>{getPlayerAvatar(tx.targetPlayerId)}</span>
-                <span className="font-bold">{getPlayerName(tx.targetPlayerId)}</span>
-                <span className={`font-bold ml-auto ${
+                <span className={`font-bold ${
                   tx.amount > 0 ? 'text-neon-green' : 'text-accent'
                 }`}>
                   {tx.amount > 0 ? '+' : ''}{tx.amount}
                 </span>
-                {tx.note && <span className="text-gray-500 text-xs truncate max-w-[60px]">{tx.note}</span>}
+                <span className="font-bold truncate">{getPlayerName(tx.targetPlayerId)}</span>
+                <span className="text-gray-500 text-xs ml-auto whitespace-nowrap">by {getPlayerName(tx.fromPlayerId)}</span>
+                {tx.note && <span className="text-gray-600 text-xs truncate max-w-[60px]">· {tx.note}</span>}
               </motion.div>
             ))
           )}
@@ -135,7 +133,9 @@ export default function CalculatorMain() {
                 className="space-y-3"
               >
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">金額調整</p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    調整 <span className="text-white font-bold">{getPlayerName(selectedTarget)}</span> 的籌碼
+                  </p>
                   <div className="grid grid-cols-4 gap-2">
                     {PRESETS.map((val) => (
                       <button
@@ -200,7 +200,7 @@ export default function CalculatorMain() {
                 >
                   {amount === 0
                     ? '請輸入金額'
-                    : `確認 ${amount > 0 ? '+' : ''}${amount} 給 ${getPlayerName(selectedTarget)}`}
+                    : `${getPlayerName(selectedTarget)} ${amount > 0 ? '+' : ''}${amount}`}
                 </button>
               </motion.div>
             )}
