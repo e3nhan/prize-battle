@@ -146,7 +146,7 @@ export default function AuctionDisplay() {
         {phase === 'auction_result' && (
           <div className="flex-1 flex gap-8">
             <div className="flex-1 flex items-center justify-center">
-              <BoxOpening result={auctionResult} />
+              <BoxOpening result={auctionResult} instant />
             </div>
             <div className="w-96">
               <ChipRanking players={room.players} />

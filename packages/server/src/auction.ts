@@ -51,14 +51,16 @@ export function submitBid(
 }
 
 // Zero-sum helper: transfer chips from sources to target, capped at each source's chips
+// Returns actual amount transferred
 function transferChips(
   target: Player,
   sources: Player[],
   totalAmount: number,
-): void {
-  if (sources.length === 0 || totalAmount <= 0) return;
+): number {
+  if (sources.length === 0 || totalAmount <= 0) return 0;
   const perPlayer = Math.floor(totalAmount / sources.length);
   let remainder = totalAmount - perPlayer * sources.length;
+  let actualTotal = 0;
 
   for (const source of sources) {
     let take = perPlayer + (remainder > 0 ? 1 : 0);
@@ -66,16 +68,19 @@ function transferChips(
     take = Math.min(take, source.chips);
     source.chips -= take;
     target.chips += take;
+    actualTotal += take;
   }
+  return actualTotal;
 }
 
 // Zero-sum helper: transfer chips from source to destinations
+// Returns actual amount distributed
 function distributeChips(
   source: Player,
   destinations: Player[],
   totalAmount: number,
-): void {
-  if (destinations.length === 0 || totalAmount <= 0) return;
+): number {
+  if (destinations.length === 0 || totalAmount <= 0) return 0;
   const actual = Math.min(totalAmount, source.chips);
   const perPlayer = Math.floor(actual / destinations.length);
   let remainder = actual - perPlayer * destinations.length;
@@ -86,6 +91,7 @@ function distributeChips(
     if (remainder > 0) remainder--;
     dest.chips += give;
   }
+  return actual;
 }
 
 export function resolveAuction(
@@ -121,14 +127,14 @@ export function resolveAuction(
     switch (box.type) {
       case 'diamond': {
         const transferAmount = Math.floor(winningBid * box.value);
-        transferChips(winner, others, transferAmount);
-        effectResult = `恭喜！鑽石寶箱，從其他玩家獲得 ${transferAmount} 籌碼！`;
+        const actual = transferChips(winner, others, transferAmount);
+        effectResult = `恭喜！鑽石寶箱，從其他玩家獲得 ${actual} 籌碼！`;
         break;
       }
       case 'normal': {
         const transferAmount = Math.floor(winningBid * box.value);
-        transferChips(winner, others, transferAmount);
-        effectResult = `普通寶箱，從其他玩家獲得 ${transferAmount} 籌碼`;
+        const actual = transferChips(winner, others, transferAmount);
+        effectResult = `普通寶箱，從其他玩家獲得 ${actual} 籌碼`;
         break;
       }
       case 'bomb': {
@@ -137,8 +143,8 @@ export function resolveAuction(
           playerShields.delete(winnerId);
         } else {
           const penalty = Math.floor(winningBid * 0.8);
-          distributeChips(winner, others, penalty);
-          effectResult = `炸彈寶箱！損失 ${penalty} 籌碼給其他玩家！`;
+          const actual = distributeChips(winner, others, penalty);
+          effectResult = `炸彈寶箱！損失 ${actual} 籌碼給其他玩家！`;
         }
         break;
       }
@@ -209,11 +215,11 @@ function applySpecialEffect(
     case 'double_or_nothing': {
       const transferAmount = Math.floor(winningBid * 1.5);
       if (Math.random() < 0.5) {
-        transferChips(winner, others, transferAmount);
-        return `大獎！從其他玩家獲得 ${transferAmount} 籌碼！`;
+        const actual = transferChips(winner, others, transferAmount);
+        return `大獎！從其他玩家獲得 ${actual} 籌碼！`;
       } else {
-        distributeChips(winner, others, transferAmount);
-        return `慘！損失 ${transferAmount} 籌碼給其他玩家！`;
+        const actual = distributeChips(winner, others, transferAmount);
+        return `慘！損失 ${actual} 籌碼給其他玩家！`;
       }
     }
 

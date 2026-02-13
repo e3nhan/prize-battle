@@ -41,6 +41,7 @@ interface GameStore {
   auctionResult: AuctionResult | null;
   confirmedBids: Set<string>;
   hasSubmittedBid: boolean;
+  chipsBeforeAuction: number;
 
   // Leaderboard
   leaderboard: LeaderboardEntry[];
@@ -89,6 +90,7 @@ export const useGameStore = create<GameStore>((set) => ({
   auctionResult: null,
   confirmedBids: new Set(),
   hasSubmittedBid: false,
+  chipsBeforeAuction: 0,
   leaderboard: [],
 
   setScreen: (screen) => set({ screen }),
@@ -166,12 +168,16 @@ export const useGameStore = create<GameStore>((set) => ({
   }),
   setHasConfirmedRound: (value) => set({ hasConfirmedRound: value }),
 
-  setAuctionState: (auctionState) => set({
-    auctionState,
-    auctionResult: null,
-    hasSubmittedBid: false,
-    confirmedBids: new Set(),
-    timeLeft: auctionState.timeLeft,
+  setAuctionState: (auctionState) => set((state) => {
+    const me = state.room?.players.find((p) => p.id === state.playerId);
+    return {
+      auctionState,
+      auctionResult: null,
+      hasSubmittedBid: false,
+      confirmedBids: new Set(),
+      timeLeft: auctionState.timeLeft,
+      chipsBeforeAuction: me?.chips ?? 0,
+    };
   }),
 
   setAuctionResult: (result) => set({ auctionResult: result }),
@@ -203,6 +209,7 @@ export const useGameStore = create<GameStore>((set) => ({
     auctionResult: null,
     confirmedBids: new Set(),
     hasSubmittedBid: false,
+    chipsBeforeAuction: 0,
     leaderboard: [],
     error: null,
   }),

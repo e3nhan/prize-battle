@@ -10,13 +10,19 @@ interface BidInputProps {
 export default function BidInput({ min, max, onSubmit, disabled }: BidInputProps) {
   const [amount, setAmount] = useState(min);
 
-  const presets = [
+  const rawPresets = [
     { label: '放棄', value: 0 },
     { label: '最低', value: min },
-    { label: '25%', value: Math.floor(max * 0.25) },
-    { label: '50%', value: Math.floor(max * 0.5) },
+    { label: '25%', value: Math.max(min, Math.floor(max * 0.25)) },
+    { label: '50%', value: Math.max(min, Math.floor(max * 0.5)) },
     { label: 'ALL IN', value: max },
   ];
+  const seen = new Set<number>();
+  const presets = rawPresets.filter((p) => {
+    if (seen.has(p.value)) return false;
+    seen.add(p.value);
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -50,23 +56,32 @@ export default function BidInput({ min, max, onSubmit, disabled }: BidInputProps
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {presets.map((preset) => (
-          <button
-            key={preset.label}
-            onClick={() => setAmount(preset.value)}
-            disabled={disabled}
-            className={`flex-1 min-w-[60px] py-2 rounded-lg text-sm font-bold transition-all
-              ${preset.label === 'ALL IN'
-                ? 'bg-accent/30 text-accent border border-accent/50'
-                : preset.label === '放棄'
-                  ? 'bg-gray-700 text-gray-400 border border-gray-600'
-                  : 'bg-secondary text-gray-300 border border-gray-600'
-              }
-              disabled:opacity-50`}
-          >
-            {preset.label}
-          </button>
-        ))}
+        {presets.map((preset) => {
+          const isActive = amount === preset.value;
+          return (
+            <button
+              key={preset.label}
+              onClick={() => setAmount(preset.value)}
+              disabled={disabled}
+              className={`flex-1 min-w-[60px] py-2 rounded-lg text-sm font-bold transition-all
+                ${isActive
+                  ? preset.label === 'ALL IN'
+                    ? 'bg-accent text-white border border-accent ring-2 ring-accent/50'
+                    : preset.label === '放棄'
+                      ? 'bg-gray-600 text-white border border-gray-400 ring-2 ring-gray-400/50'
+                      : 'bg-gold/30 text-gold border border-gold ring-2 ring-gold/50'
+                  : preset.label === 'ALL IN'
+                    ? 'bg-accent/30 text-accent border border-accent/50'
+                    : preset.label === '放棄'
+                      ? 'bg-gray-700 text-gray-400 border border-gray-600'
+                      : 'bg-secondary text-gray-300 border border-gray-600'
+                }
+                disabled:opacity-50`}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
       </div>
 
       <button

@@ -17,6 +17,7 @@ export default function AuctionRound() {
   const hasSubmittedBid = useGameStore((s) => s.hasSubmittedBid);
   const setHasSubmittedBid = useGameStore((s) => s.setHasSubmittedBid);
   const confirmedBids = useGameStore((s) => s.confirmedBids);
+  const chipsBeforeAuction = useGameStore((s) => s.chipsBeforeAuction);
   const confirmedRoundReady = useGameStore((s) => s.confirmedRoundReady);
   const hasConfirmedRound = useGameStore((s) => s.hasConfirmedRound);
   const setHasConfirmedRound = useGameStore((s) => s.setHasConfirmedRound);
@@ -118,6 +119,7 @@ export default function AuctionRound() {
   if ((phase === 'auction_reveal' || phase === 'auction_result') && auctionResult) {
     const isWinner = auctionResult.winnerId === playerId;
     const myNewChips = auctionResult.playerChipsAfter[playerId!] ?? myChips;
+    const delta = myNewChips - chipsBeforeAuction;
 
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
@@ -140,14 +142,6 @@ export default function AuctionRound() {
               </p>
               <h2 className="text-2xl font-bold text-gold">你得標了！</h2>
               <p className="text-lg">出價: 🪙{auctionResult.winningBid}</p>
-              {(() => {
-                const delta = myNewChips - myChips;
-                return (
-                  <p className={`text-lg font-bold ${delta >= 0 ? 'text-neon-green' : 'text-accent'}`}>
-                    {delta >= 0 ? `+${delta}` : `${delta}`} 籌碼
-                  </p>
-                );
-              })()}
             </>
           ) : (
             <>
@@ -166,6 +160,12 @@ export default function AuctionRound() {
             >
               {auctionResult.effectResult}
             </motion.p>
+          )}
+
+          {delta !== 0 && (
+            <p className={`text-lg font-bold ${delta > 0 ? 'text-neon-green' : 'text-accent'}`}>
+              {delta > 0 ? `+${delta}` : `${delta}`} 籌碼
+            </p>
           )}
 
           <ChipDisplay amount={myNewChips} size="lg" />

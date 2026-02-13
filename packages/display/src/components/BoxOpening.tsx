@@ -5,6 +5,7 @@ import type { AuctionResult } from '@prize-battle/shared';
 interface BoxOpeningProps {
   result: AuctionResult;
   onComplete?: () => void;
+  instant?: boolean;
 }
 
 const boxTypeEmoji: Record<string, string> = {
@@ -21,10 +22,14 @@ const boxTypeLabel: Record<string, string> = {
   mystery: '神秘箱！',
 };
 
-export default function BoxOpening({ result, onComplete }: BoxOpeningProps) {
-  const [stage, setStage] = useState<'shaking' | 'opening' | 'revealed'>('shaking');
+export default function BoxOpening({ result, onComplete, instant }: BoxOpeningProps) {
+  const [stage, setStage] = useState<'shaking' | 'opening' | 'revealed'>(instant ? 'revealed' : 'shaking');
 
   useEffect(() => {
+    if (instant) {
+      onComplete?.();
+      return;
+    }
     const timer1 = setTimeout(() => setStage('opening'), 2000);
     const timer2 = setTimeout(() => {
       setStage('revealed');
