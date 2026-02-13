@@ -113,6 +113,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
   setGameState: (gameState) => set({
     gameState,
+    phase: gameState.phase,
     screen: 'game',
     countdown: null,
   }),
