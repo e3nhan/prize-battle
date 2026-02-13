@@ -205,9 +205,11 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
 function HistoryTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void }) {
   const typeMap = Object.fromEntries(data.scratchTypes.map((t) => [t.id, t]));
   const sorted = [...data.records].sort((a, b) => b.timestamp - a.timestamp);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     await fetch(`${API}/api/scratch/records/${id}`, { method: 'DELETE' });
+    setConfirmId(null);
     onRefresh();
   };
 
@@ -220,32 +222,60 @@ function HistoryTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => v
       {sorted.map((r) => {
         const t = typeMap[r.scratchTypeId];
         const net = r.prize - (t?.price ?? 0);
+        const isConfirming = confirmId === r.id;
         return (
-          <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-white">{r.person}</span>
-                <span className="text-sm text-gray-500">{t?.name ?? '?'}</span>
+          <div key={r.id} className="relative overflow-hidden rounded-xl">
+            <AnimatePresence>
+              {isConfirming && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-10 flex items-center justify-center gap-3
+                    bg-black/80 backdrop-blur-sm rounded-xl"
+                >
+                  <span className="text-sm text-gray-300">確定刪除？</span>
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    className="px-4 py-1.5 rounded-lg bg-accent text-white text-sm font-bold"
+                  >
+                    刪除
+                  </button>
+                  <button
+                    onClick={() => setConfirmId(null)}
+                    className="px-4 py-1.5 rounded-lg bg-white/10 text-gray-300 text-sm font-bold"
+                  >
+                    取消
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <div className="flex items-center gap-3 p-3 bg-secondary">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white">{r.person}</span>
+                  <span className="text-sm text-gray-500">{t?.name ?? '?'}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-gray-400">花 ${t?.price ?? '?'}</span>
+                  <span className={r.prize > 0 ? 'text-gold font-bold' : 'text-gray-500'}>
+                    中 ${r.prize}
+                  </span>
+                  <span className={net >= 0 ? 'text-neon-green' : 'text-accent'}>
+                    {net >= 0 ? '+' : ''}{net}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-gray-400">花 ${t?.price ?? '?'}</span>
-                <span className={r.prize > 0 ? 'text-gold font-bold' : 'text-gray-500'}>
-                  中 ${r.prize}
-                </span>
-                <span className={net >= 0 ? 'text-neon-green' : 'text-accent'}>
-                  {net >= 0 ? '+' : ''}{net}
-                </span>
+              <div className="text-right text-xs text-gray-600">
+                {new Date(r.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}
               </div>
+              <button
+                onClick={() => setConfirmId(r.id)}
+                className="text-gray-600 active:text-accent text-xl px-1"
+              >
+                ×
+              </button>
             </div>
-            <div className="text-right text-xs text-gray-600">
-              {new Date(r.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <button
-              onClick={() => handleDelete(r.id)}
-              className="text-gray-600 hover:text-accent text-lg ml-1"
-            >
-              ×
-            </button>
           </div>
         );
       })}

@@ -25,6 +25,5 @@ COPY --from=build /app/packages/display/dist packages/display/dist
 
 EXPOSE 8080
 ENV PORT=8080
-ENV SCRATCH_DATA_DIR=/app/persist
-VOLUME ["/app/persist"]
+ENV SCRATCH_DATA_DIR=/data
 CMD ["node", "packages/server/dist/index.js"]
