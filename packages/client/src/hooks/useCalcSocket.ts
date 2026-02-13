@@ -17,8 +17,28 @@ export function useCalcSocket() {
     });
 
     s.on('error', (message) => {
+      if (message === 'reconnect_failed') {
+        sessionStorage.removeItem('playerName');
+        return;
+      }
       store.setError(message);
     });
+
+    // 頁面重整後自動重連
+    const savedName = sessionStorage.getItem('playerName');
+    const appMode = sessionStorage.getItem('appMode');
+    if (savedName && appMode === 'calculator') {
+      store.setPlayerName(savedName);
+      const tryReconnect = () => {
+        store.setPlayerId(s.id!);
+        s.emit('reconnectCalc', savedName);
+      };
+      if (s.connected) {
+        tryReconnect();
+      } else {
+        s.once('connect', tryReconnect);
+      }
+    }
 
     return () => {
       s.off('calcRoomUpdate');

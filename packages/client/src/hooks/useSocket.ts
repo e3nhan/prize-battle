@@ -32,6 +32,11 @@ export function useSocket(): TypedSocket {
     });
 
     s.on('error', (message) => {
+      // reconnect_failed 表示伺服器找不到該玩家，清掉 session 讓 UI 回到加入頁
+      if (message === 'reconnect_failed') {
+        sessionStorage.removeItem('playerName');
+        return;
+      }
       store.setError(message);
     });
 
@@ -82,6 +87,22 @@ export function useSocket(): TypedSocket {
     s.on('finalResult', (leaderboard) => {
       store.setLeaderboard(leaderboard);
     });
+
+    // 頁面重整後自動重連
+    const savedName = sessionStorage.getItem('playerName');
+    const appMode = sessionStorage.getItem('appMode');
+    if (savedName && appMode === 'game') {
+      store.setPlayerName(savedName);
+      const tryReconnect = () => {
+        store.setPlayerId(s.id!);
+        s.emit('reconnectGame', savedName);
+      };
+      if (s.connected) {
+        tryReconnect();
+      } else {
+        s.once('connect', tryReconnect);
+      }
+    }
 
     return () => {
       s.off('roomUpdate');

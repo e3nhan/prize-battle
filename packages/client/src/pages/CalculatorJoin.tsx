@@ -15,6 +15,7 @@ export default function CalculatorJoin({ onBack }: { onBack: () => void }) {
     const socket = getSocket();
     setPlayerId(socket.id!);
     setPlayerName(name.trim());
+    sessionStorage.setItem('playerName', name.trim());
     socket.emit('joinCalculator', name.trim(), initialChips);
   };
 

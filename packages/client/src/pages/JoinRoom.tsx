@@ -18,6 +18,7 @@ export default function JoinRoom() {
     const socket = getSocket();
     setPlayerId(socket.id!);
     setPlayerName(name.trim());
+    sessionStorage.setItem('playerName', name.trim());
     socket.emit('quickJoin', name.trim(), buyIn);
   };
 
