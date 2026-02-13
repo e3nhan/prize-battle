@@ -130,8 +130,8 @@ export const useGameStore = create<GameStore>((set) => ({
     if (phase === 'final_result') {
       newState.screen = 'result';
     }
-    // 每輪 briefing 開始時重置準備狀態
-    if (phase === 'betting_briefing' || phase === 'auction_briefing') {
+    // 每輪 briefing / auction_intro 開始時重置準備狀態
+    if (phase === 'betting_briefing' || phase === 'auction_briefing' || phase === 'auction_intro') {
       newState.confirmedRoundReady = new Set();
       newState.hasConfirmedRound = false;
     }
