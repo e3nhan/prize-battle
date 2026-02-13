@@ -36,7 +36,7 @@ export default function Lobby() {
   };
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col p-6 overflow-y-auto">
       <div className="text-center mb-6">
         <p className="text-xl font-bold text-gold">🎰 獎金爭奪戰</p>
         <p className="text-sm text-gray-500 mt-1">
@@ -73,7 +73,7 @@ export default function Lobby() {
       </div>
 
       {/* Player list */}
-      <div className="flex-1 overflow-y-auto space-y-2 mb-6">
+      <div className="space-y-2 mb-6">
         {room.players.map((player, index) => (
           <motion.div
             key={player.id}
