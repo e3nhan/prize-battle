@@ -298,8 +298,9 @@ function HistoryTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => v
                   </span>
                 </div>
               </div>
-              <div className="text-right text-xs text-gray-600">
-                {new Date(r.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}
+              <div className="text-right text-xs text-gray-600 leading-relaxed">
+                <div>{new Date(r.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}</div>
+                <div>{new Date(r.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
               <button
                 onClick={() => setConfirmId(r.id)}
