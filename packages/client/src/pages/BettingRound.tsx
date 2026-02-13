@@ -25,11 +25,13 @@ export default function BettingRound() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null); // group_predict A/B
   const [betAmount, setBetAmount] = useState(100);
+  const [myBetInfo, setMyBetInfo] = useState<{ optionId: string; choiceId?: string; amount: number } | null>(null);
 
   // 每輪開始時重置選擇狀態，避免舊選擇殘留到下一輪
   useEffect(() => {
     setSelectedOption(null);
     setSelectedChoice(null);
+    setMyBetInfo(null);
   }, [bettingState?.roundNumber]);
 
   // Show intro (no bettingState needed)
@@ -74,6 +76,23 @@ export default function BettingRound() {
               {getBetTypeDescription(bettingState.type)}
             </p>
           )}
+          {/* 選項預覽 */}
+          {bettingState && bettingState.options.filter((o) => !o.id.startsWith('predict_')).length > 0 && (
+            <div className="w-full bg-primary/50 rounded-xl p-3 border border-gray-700">
+              <p className="text-xs text-gray-500 mb-2">選項預覽</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {bettingState.options
+                  .filter((o) => !o.id.startsWith('predict_'))
+                  .map((option) => (
+                    <span key={option.id} className="px-3 py-1 rounded-lg bg-secondary text-sm text-gray-300 border border-gray-600">
+                      {option.label}
+                      {option.odds > 0 && <span className="text-neon-blue ml-1">1:{option.odds}</span>}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
+
           <ChipDisplay amount={myChipsNow} size="sm" />
 
           {hasConfirmedRound ? (
@@ -113,6 +132,9 @@ export default function BettingRound() {
       : { optionId: selectedOption, amount: betAmount };
     getSocket().emit('placeBet', payload);
     setHasPlacedBet(true);
+    setMyBetInfo(isGroupPredict && selectedChoice
+      ? { optionId: selectedOption, choiceId: selectedChoice, amount: betAmount }
+      : { optionId: selectedOption, amount: betAmount });
     if (navigator.vibrate) navigator.vibrate(50);
   };
 
@@ -120,6 +142,7 @@ export default function BettingRound() {
 
   // Show result
   if (phase === 'betting_result' && myResult) {
+    const betOption = myBetInfo ? bettingState?.options.find((o) => o.id === myBetInfo.optionId) : null;
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
         <motion.div
@@ -150,6 +173,19 @@ export default function BettingRound() {
               <p className="text-6xl mb-4">⏭️</p>
               <h2 className="text-3xl font-black text-gray-400 mb-2">棄權</h2>
             </>
+          )}
+          {/* 下注明細 */}
+          {myBetInfo && hasPlacedBet && (
+            <div className="mt-3 px-4 py-2 rounded-lg bg-secondary border border-gray-700 text-sm text-gray-400">
+              {isGroupPredict ? (
+                <p>你選了 {myBetInfo.choiceId === 'choice_A' ? 'A' : 'B'} · {betOption?.label}</p>
+              ) : (
+                <p>
+                  {betOption?.label} · 下注 🪙{myBetInfo.amount}
+                  {betOption && betOption.odds > 0 && ` · 賠率 1:${betOption.odds}`}
+                </p>
+              )}
+            </div>
           )}
           <ChipDisplay amount={myResult.newChips} size="lg" />
         </motion.div>
@@ -237,7 +273,24 @@ export default function BettingRound() {
           >
             <p className="text-4xl mb-2">✅</p>
             <p className="text-xl font-bold text-neon-green">已下注</p>
-            <p className="text-gray-400 mt-1">
+            {myBetInfo && (
+              <div className="mt-2 px-4 py-2 rounded-lg bg-secondary border border-gray-700">
+                <p className="text-sm text-gray-300">
+                  {isGroupPredict ? (
+                    <>
+                      你選了 <span className="text-gold font-bold">{myBetInfo.choiceId === 'choice_A' ? 'A' : 'B'}</span>
+                      {' · '}預測 <span className="text-gold font-bold">{bettingState.options.find((o) => o.id === myBetInfo.optionId)?.label}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-gold font-bold">{bettingState.options.find((o) => o.id === myBetInfo.optionId)?.label}</span>
+                      {' · '}下注 <span className="text-gold font-bold">🪙{myBetInfo.amount}</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
+            <p className="text-gray-400 mt-2">
               等待其他玩家... ({confirmedCount}/{totalPlayers})
             </p>
           </motion.div>

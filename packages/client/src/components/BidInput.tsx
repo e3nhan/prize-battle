@@ -37,7 +37,7 @@ export default function BidInput({ min, max, onSubmit, disabled }: BidInputProps
         type="range"
         min={min}
         max={max}
-        step={Math.max(10, Math.floor(max / 100) * 10)}
+        step={10}
         value={amount === 0 ? min : amount}
         onChange={(e) => setAmount(Number(e.target.value))}
         disabled={disabled || amount === 0}

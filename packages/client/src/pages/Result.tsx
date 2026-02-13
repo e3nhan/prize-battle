@@ -6,7 +6,10 @@ export default function Result() {
   const leaderboard = useGameStore((s) => s.leaderboard);
   const playerId = useGameStore((s) => s.playerId);
 
+  const room = useGameStore((s) => s.room);
+
   const myEntry = leaderboard.find((e) => e.playerId === playerId);
+  const myBuyIn = room?.players.find((p) => p.id === playerId)?.buyIn ?? 0;
 
   const handlePlayAgain = () => {
     getSocket().emit('playAgain');
@@ -41,6 +44,11 @@ export default function Result() {
               <p className="text-xl font-bold text-neon-green">💰 {myEntry.prize}</p>
             </div>
           </div>
+          {myBuyIn > 0 && (
+            <p className={`mt-2 text-sm font-bold ${myEntry.prize >= myBuyIn ? 'text-neon-green' : 'text-accent'}`}>
+              投入 {myBuyIn} 元 → 獲得 {myEntry.prize} 元（{myEntry.prize >= myBuyIn ? '+' : ''}{Math.round(((myEntry.prize - myBuyIn) / myBuyIn) * 100)}%）
+            </p>
+          )}
         </motion.div>
       )}
 

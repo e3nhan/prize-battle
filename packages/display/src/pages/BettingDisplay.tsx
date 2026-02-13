@@ -104,7 +104,10 @@ export default function BettingDisplay() {
                   🤷 沒有贏家 — 籌碼已退回
                 </motion.p>
               )}
-              <div className="grid grid-cols-4 gap-3">
+              <div className={`grid gap-3 ${
+                room.players.length <= 3 ? 'grid-cols-3' :
+                room.players.length <= 6 ? 'grid-cols-3' : 'grid-cols-4'
+              }`}>
                 {room.players.map((player) => {
                   const result = bettingResult.playerResults[player.id];
                   if (!result) return null;

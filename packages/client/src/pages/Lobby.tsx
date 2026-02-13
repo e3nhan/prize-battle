@@ -1,6 +1,8 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
+import { GAME_CONFIG } from '@prize-battle/shared';
 
 export default function Lobby() {
   const room = useGameStore((s) => s.room);
@@ -13,6 +15,7 @@ export default function Lobby() {
   const isReady = me?.isReady ?? false;
 
   const hasBots = room.players.some((p) => p.id.startsWith('bot_'));
+  const [showRules, setShowRules] = useState(false);
 
   const handleReady = () => {
     getSocket().emit('playerReady');
@@ -90,6 +93,34 @@ export default function Lobby() {
           </div>
         ))}
       </div>
+
+      {/* 遊戲規則 */}
+      <button
+        onClick={() => setShowRules(!showRules)}
+        className="w-full py-2 mb-3 rounded-lg text-sm font-bold bg-secondary border border-gray-600
+          text-gray-400 hover:text-gold hover:border-gold transition-all active:scale-95"
+      >
+        {showRules ? '收起規則 ▲' : '遊戲規則 ▼'}
+      </button>
+      <AnimatePresence>
+        {showRules && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden mb-3"
+          >
+            <div className="p-4 rounded-xl bg-secondary border border-gray-700 text-sm text-gray-300 space-y-2">
+              <p className="font-bold text-gold">遊戲流程</p>
+              <p>1. 押注預測（{GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪）：骰子、輪盤、硬幣等小遊戲，選擇下注贏取籌碼。</p>
+              <p>2. 拍賣戰（{GAME_CONFIG.TOTAL_AUCTION_ITEMS} 輪）：暗標競拍寶箱，可能是鑽石（大獎）、普通、炸彈（虧損）或神秘箱。</p>
+              <p className="font-bold text-gold mt-2">獎金分配</p>
+              <p>最終依籌碼排名分配獎金池：第1名 {GAME_CONFIG.PRIZE_DISTRIBUTION[0] * 100}%、第2名 {GAME_CONFIG.PRIZE_DISTRIBUTION[1] * 100}%、第3名 {GAME_CONFIG.PRIZE_DISTRIBUTION[2] * 100}%...</p>
+              <p className="text-gray-500 text-xs mt-1">初始籌碼：🪙{GAME_CONFIG.INITIAL_CHIPS}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bot controls */}
       {countdown === null && (

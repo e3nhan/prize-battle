@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
@@ -22,8 +22,15 @@ export default function AuctionRound() {
   const hasConfirmedRound = useGameStore((s) => s.hasConfirmedRound);
   const setHasConfirmedRound = useGameStore((s) => s.setHasConfirmedRound);
 
+  const [myBidAmount, setMyBidAmount] = useState<number | null>(null);
+
   const me = room?.players.find((p) => p.id === playerId);
   const myChips = me?.chips ?? 0;
+
+  // 每輪重置出價記錄
+  useEffect(() => {
+    setMyBidAmount(null);
+  }, [auctionState?.roundNumber]);
 
   // 籌碼不足最低出價時自動棄標
   useEffect(() => {
@@ -94,6 +101,7 @@ export default function AuctionRound() {
   const handleSubmitBid = (amount: number) => {
     getSocket().emit('submitBid', amount);
     setHasSubmittedBid(true);
+    setMyBidAmount(amount);
     if (navigator.vibrate) navigator.vibrate(50);
   };
 
@@ -110,6 +118,12 @@ export default function AuctionRound() {
           <h2 className="text-3xl font-black text-gold mb-2">拍賣戰</h2>
           <p className="text-gray-400">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 個寶箱，暗標出價！</p>
           <p className="text-gray-500 text-sm mt-2">最高價者得標，同價流標</p>
+          <div className="flex flex-wrap gap-2 justify-center mt-3">
+            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">💎 鑽石 x{GAME_CONFIG.BOX_DISTRIBUTION.diamond}</span>
+            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">📦 普通 x{GAME_CONFIG.BOX_DISTRIBUTION.normal}</span>
+            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">💀 炸彈 x{GAME_CONFIG.BOX_DISTRIBUTION.bomb}</span>
+            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">🎭 神秘 x{GAME_CONFIG.BOX_DISTRIBUTION.mystery}</span>
+          </div>
         </motion.div>
       </div>
     );
@@ -142,6 +156,12 @@ export default function AuctionRound() {
               </p>
               <h2 className="text-2xl font-bold text-gold">你得標了！</h2>
               <p className="text-lg">出價: 🪙{auctionResult.winningBid}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {auctionResult.box.type === 'diamond' ? '鑽石箱：出價 x3 返還' :
+                 auctionResult.box.type === 'bomb' ? '炸彈箱：損失 80% 出價' :
+                 auctionResult.box.type === 'mystery' ? '神秘箱：觸發特殊效果' :
+                 '普通箱：出價 +30%~60% 返還'}
+              </p>
             </>
           ) : (
             <>
@@ -226,7 +246,12 @@ export default function AuctionRound() {
           >
             <p className="text-4xl mb-2">✅</p>
             <p className="text-xl font-bold text-neon-green">已出價</p>
-            <p className="text-gray-400 mt-1">
+            {myBidAmount !== null && (
+              <p className="mt-2 px-4 py-2 rounded-lg bg-secondary border border-gray-700 text-gold font-bold">
+                {myBidAmount === 0 ? '放棄出價' : `🪙 ${myBidAmount}`}
+              </p>
+            )}
+            <p className="text-gray-400 mt-2">
               等待其他玩家... ({confirmedCount}/{totalPlayers})
             </p>
           </motion.div>
