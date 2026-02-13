@@ -103,6 +103,7 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
   const [typeId, setTypeId] = useState('');
   const [prize, setPrize] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ text: string; key: number } | null>(null);
 
   if (data.people.length === 0 || data.scratchTypes.length === 0) {
     return (
@@ -112,26 +113,56 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
     );
   }
 
+  const selectedType = data.scratchTypes.find((t) => t.id === typeId);
+
   const handleSubmit = async () => {
     if (!person || !typeId) return;
     setSubmitting(true);
     try {
-      await fetch(`${API}/api/scratch/records`, {
+      const res = await fetch(`${API}/api/scratch/records`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ person, scratchTypeId: typeId, prize: Number(prize) || 0 }),
       });
-      setPrize('');
-      onRefresh();
+      if (res.ok) {
+        const prizeVal = Number(prize) || 0;
+        const msg = prizeVal > 0
+          ? `${person} — ${selectedType?.name} 中 $${prizeVal}！`
+          : `${person} — ${selectedType?.name} 已登記`;
+        setToast({ text: msg, key: Date.now() });
+        setPrize('');
+        navigator.vibrate?.(50);
+        onRefresh();
+      } else {
+        setToast({ text: '登記失敗，請再試一次', key: Date.now() });
+      }
+    } catch {
+      setToast({ text: '網路錯誤，請檢查連線', key: Date.now() });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const selectedType = data.scratchTypes.find((t) => t.id === typeId);
-
   return (
     <div className="space-y-5">
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.key}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            onAnimationComplete={() => setTimeout(() => setToast(null), 2000)}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-xl
+              bg-neon-green/20 border border-neon-green/40 text-neon-green text-sm font-bold
+              backdrop-blur-sm shadow-lg"
+          >
+            {toast.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 選人 */}
       <div>
         <label className="block text-sm text-gray-400 mb-2">誰刮的？</label>
@@ -189,14 +220,15 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
       </div>
 
       {/* 送出 */}
-      <button
+      <motion.button
         onClick={handleSubmit}
         disabled={!person || !typeId || submitting}
-        className="w-full py-4 rounded-xl text-lg font-bold transition-all active:scale-95
-          bg-neon-green/80 text-primary disabled:opacity-30 disabled:active:scale-100"
+        whileTap={{ scale: 0.95 }}
+        className="w-full py-4 rounded-xl text-lg font-bold transition-colors
+          bg-neon-green/80 text-primary disabled:opacity-30"
       >
         {submitting ? '登記中...' : '登記'}
-      </button>
+      </motion.button>
     </div>
   );
 }
