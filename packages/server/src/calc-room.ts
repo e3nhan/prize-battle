@@ -175,9 +175,12 @@ export function lockCalcBet(socketId: string): CalcBetRound | null {
 
   calcState.currentBetRound.lockedPlayers.push(socketId);
 
-  // 所有已下注的人都鎖定了 → status='locked'
-  const bettors = Object.keys(calcState.currentBetRound.bets);
-  if (bettors.every((id) => calcState.currentBetRound!.lockedPlayers.includes(id))) {
+  // 所有連線且有籌碼（能下注）的玩家都鎖定後才 → status='locked'
+  const canBetPlayers = calcRoom.players.filter((p) => p.isConnected && p.chips > 0);
+  if (
+    canBetPlayers.length > 0 &&
+    canBetPlayers.every((p) => calcState.currentBetRound!.lockedPlayers.includes(p.id))
+  ) {
     calcState.currentBetRound.status = 'locked';
   }
 
