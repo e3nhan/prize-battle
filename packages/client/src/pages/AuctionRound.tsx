@@ -95,23 +95,70 @@ export default function AuctionRound() {
 
   // Intro（auctionState 尚未送達，必須在 null guard 前處理）
   if (phase === 'auction_intro') {
+    const totalPlayers = room?.players.filter((p) => p.isConnected).length ?? 0;
+    const readyCount = confirmedRoundReady.size;
+    const handleIntroReady = () => {
+      if (hasConfirmedRound) return;
+      getSocket().emit('roundReady');
+      setHasConfirmedRound(true);
+      if (navigator.vibrate) navigator.vibrate(50);
+    };
     return (
-      <div className="h-full flex flex-col items-center justify-center p-6">
+      <div className="h-full flex flex-col p-6 overflow-y-auto">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="text-center"
+          className="w-full max-w-sm mx-auto space-y-4"
         >
-          <p className="text-6xl mb-4">📦</p>
-          <h2 className="text-3xl font-black text-gold mb-2">拍賣戰</h2>
-          <p className="text-gray-400">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 個寶箱，暗標出價！</p>
-          <p className="text-gray-500 text-sm mt-2">最高價者得標，同價流標</p>
-          <div className="flex flex-wrap gap-2 justify-center mt-3">
-            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">💎 鑽石 x{GAME_CONFIG.BOX_DISTRIBUTION.diamond}</span>
-            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">📦 普通 x{GAME_CONFIG.BOX_DISTRIBUTION.normal}</span>
-            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">💀 炸彈 x{GAME_CONFIG.BOX_DISTRIBUTION.bomb}</span>
-            <span className="px-2 py-1 rounded bg-secondary text-sm border border-gray-700">🎭 神秘 x{GAME_CONFIG.BOX_DISTRIBUTION.mystery}</span>
+          <div className="text-center">
+            <p className="text-5xl mb-2">📦</p>
+            <h2 className="text-3xl font-black text-gold">拍賣戰</h2>
+            <p className="text-gray-400 text-sm mt-1">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 輪暗標競拍</p>
           </div>
+
+          <div className="p-4 rounded-xl bg-secondary border border-gray-700 text-sm text-gray-300 space-y-3">
+            <div>
+              <p className="font-bold text-gold mb-1">玩法</p>
+              <p>每輪拍賣一個寶箱，所有人秘密出價（暗標），最高價者得標。出價相同則流標，無人出價也流標。</p>
+            </div>
+
+            <div>
+              <p className="font-bold text-gold mb-1">寶箱種類</p>
+              <div className="space-y-1 ml-1">
+                <p>💎 鑽石 x{GAME_CONFIG.BOX_DISTRIBUTION.diamond} — 從其他玩家獲得出價 ×2 的籌碼</p>
+                <p>📦 普通 x{GAME_CONFIG.BOX_DISTRIBUTION.normal} — 從其他玩家獲得出價 30%～60%</p>
+                <p>💀 炸彈 x{GAME_CONFIG.BOX_DISTRIBUTION.bomb} — 損失出價 80% 給其他玩家</p>
+                <p>🎭 神秘 x{GAME_CONFIG.BOX_DISTRIBUTION.mystery} — 隨機特殊效果（偷竊/交換/重分配等）</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-bold text-gold mb-1">提示系統</p>
+              <p>每個寶箱附帶一條提示，但有 30% 機率是誤導！最低出價 🪙{GAME_CONFIG.MIN_BID}，也可以選擇放棄出價。</p>
+            </div>
+
+            <div>
+              <p className="font-bold text-gold mb-1">策略要點</p>
+              <p>得標鑽石箱利潤最大，但炸彈箱會嚴重虧損。觀察提示的可信度，合理分配籌碼，不要孤注一擲！</p>
+            </div>
+          </div>
+
+          {hasConfirmedRound ? (
+            <div className="text-center">
+              <p className="text-xl font-bold text-neon-green">✅ 已確認</p>
+              <p className="text-gray-400 text-sm mt-1">等待其他玩家... ({readyCount}/{totalPlayers})</p>
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleIntroReady}
+              className="w-full py-4 rounded-xl text-xl font-bold
+                bg-gradient-to-r from-gold/80 to-yellow-600 text-primary
+                active:scale-95 glow-gold"
+            >
+              我瞭解了，開始拍賣！
+            </motion.button>
+          )}
         </motion.div>
       </div>
     );

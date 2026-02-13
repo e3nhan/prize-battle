@@ -16,18 +16,55 @@ export default function AuctionDisplay() {
 
   // Intro 階段 auctionState 尚未送達，必須在 null guard 之前
   if (phase === 'auction_intro') {
+    const readyCount = confirmedRoundReady.size;
+    const totalPlayers = room?.players.filter((p) => p.isConnected).length ?? 0;
     return (
-      <div className="h-full flex flex-col items-center justify-center">
+      <div className="h-full flex flex-col items-center justify-center p-12">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', damping: 10 }}
-          className="text-center"
+          className="text-center max-w-3xl w-full space-y-6"
         >
-          <p className="text-[100px]">📦</p>
-          <h1 className="text-6xl font-black text-gold glow-text-gold mt-4">拍賣戰</h1>
-          <p className="text-2xl text-gray-400 mt-4">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 個寶箱，暗標出價！</p>
-          <p className="text-xl text-gray-500 mt-2">💎鑽石 x1 · 📦普通 x2 · 💀炸彈 x2 · 🎭神秘 x1</p>
+          <p className="text-[80px]">📦</p>
+          <h1 className="text-6xl font-black text-gold glow-text-gold">拍賣戰</h1>
+          <p className="text-2xl text-gray-400">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 輪暗標競拍，最高價者得標！</p>
+
+          <div className="grid grid-cols-2 gap-4 text-left">
+            <div className="bg-secondary/80 rounded-xl p-5 border border-gray-700">
+              <p className="font-bold text-gold text-xl mb-2">寶箱種類</p>
+              <div className="text-gray-300 space-y-1.5 text-lg">
+                <p>💎 鑽石 x{GAME_CONFIG.BOX_DISTRIBUTION.diamond} — 出價 ×2 收益</p>
+                <p>📦 普通 x{GAME_CONFIG.BOX_DISTRIBUTION.normal} — 出價 +30%～60%</p>
+                <p>💀 炸彈 x{GAME_CONFIG.BOX_DISTRIBUTION.bomb} — 損失出價 80%</p>
+                <p>🎭 神秘 x{GAME_CONFIG.BOX_DISTRIBUTION.mystery} — 隨機特殊效果</p>
+              </div>
+            </div>
+            <div className="bg-secondary/80 rounded-xl p-5 border border-gray-700">
+              <p className="font-bold text-gold text-xl mb-2">規則說明</p>
+              <div className="text-gray-300 space-y-1.5 text-lg">
+                <p>所有人秘密出價（暗標）</p>
+                <p>最高價者得標，同價則流標</p>
+                <p>每箱附帶提示，但 30% 會誤導</p>
+                <p>最低出價 🪙{GAME_CONFIG.MIN_BID}，可放棄</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-3 text-2xl">
+            <span className="text-neon-green font-bold">{readyCount}</span>
+            <span className="text-gray-500">/</span>
+            <span className="text-gray-400">{totalPlayers}</span>
+            <span className="text-gray-400">人已確認</span>
+          </div>
+
+          {room && (
+            <PlayerList
+              players={room.players}
+              confirmedActions={confirmedRoundReady}
+              showChips
+            />
+          )}
         </motion.div>
       </div>
     );
