@@ -101,3 +101,9 @@ export const BOX_HINTS = {
 } as const;
 
 export const MISLEAD_RATE = 0.3;
+
+export const CALC_CONFIG = {
+  MAX_PLAYERS: 20,
+  DEFAULT_INITIAL_CHIPS: 0,
+  MAX_TRANSACTIONS: 200,
+} as const;

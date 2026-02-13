@@ -1,12 +1,18 @@
+import { useState } from 'react';
 import { useSocket } from './hooks/useSocket';
+import { useCalcSocket } from './hooks/useCalcSocket';
 import { useGameStore } from './stores/gameStore';
+import { useCalcStore } from './stores/calcStore';
+import HomeScreen from './pages/HomeScreen';
 import JoinRoom from './pages/JoinRoom';
 import Lobby from './pages/Lobby';
 import BettingRound from './pages/BettingRound';
 import AuctionRound from './pages/AuctionRound';
 import Result from './pages/Result';
+import CalculatorJoin from './pages/CalculatorJoin';
+import CalculatorMain from './pages/CalculatorMain';
 
-export default function App() {
+function GameApp() {
   useSocket();
 
   const screen = useGameStore((s) => s.screen);
@@ -16,7 +22,6 @@ export default function App() {
   if (screen === 'lobby') return <Lobby />;
   if (screen === 'result') return <Result />;
 
-  // Game screen - show appropriate sub-page based on phase
   if (screen === 'game') {
     if (
       phase === 'betting_intro' ||
@@ -44,4 +49,27 @@ export default function App() {
   }
 
   return <JoinRoom />;
+}
+
+function CalcApp({ onBack }: { onBack: () => void }) {
+  useCalcSocket();
+
+  const calcScreen = useCalcStore((s) => s.screen);
+
+  if (calcScreen === 'join') return <CalculatorJoin onBack={onBack} />;
+  return <CalculatorMain />;
+}
+
+export default function App() {
+  const [appMode, setAppMode] = useState<'home' | 'game' | 'calculator'>('home');
+
+  if (appMode === 'home') {
+    return <HomeScreen onSelectMode={setAppMode} />;
+  }
+
+  if (appMode === 'calculator') {
+    return <CalcApp onBack={() => setAppMode('home')} />;
+  }
+
+  return <GameApp />;
 }

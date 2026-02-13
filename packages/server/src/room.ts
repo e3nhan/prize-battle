@@ -16,6 +16,7 @@ export function getOrCreateMainRoom(): Room {
   if (!room) {
     room = {
       id: MAIN_ROOM_ID,
+      mode: 'game',
       players: [],
       maxPlayers: GAME_CONFIG.MAX_PLAYERS,
       status: 'waiting',

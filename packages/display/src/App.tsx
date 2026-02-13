@@ -1,11 +1,15 @@
 import { useDisplaySocket } from './hooks/useSocket';
+import { useCalcDisplaySocket } from './hooks/useCalcDisplaySocket';
 import { useDisplayStore } from './stores/displayStore';
 import WaitingScreen from './pages/WaitingScreen';
 import BettingDisplay from './pages/BettingDisplay';
 import AuctionDisplay from './pages/AuctionDisplay';
 import Leaderboard from './pages/Leaderboard';
+import CalcDisplay from './pages/CalcDisplay';
 
-export default function App() {
+const isCalcMode = window.location.pathname.includes('/calculator');
+
+function GameDisplay() {
   useDisplaySocket();
 
   const room = useDisplayStore((s) => s.room);
@@ -48,4 +52,16 @@ export default function App() {
   }
 
   return <WaitingScreen />;
+}
+
+function CalcDisplayApp() {
+  useCalcDisplaySocket();
+  return <CalcDisplay />;
+}
+
+export default function App() {
+  if (isCalcMode) {
+    return <CalcDisplayApp />;
+  }
+  return <GameDisplay />;
 }

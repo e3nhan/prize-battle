@@ -26,6 +26,14 @@ import {
   handleRoundReady,
 } from './game-engine.js';
 import { addBots, removeBots, autoReadyBots } from './bot.js';
+import {
+  getOrCreateCalcRoom,
+  joinCalcRoom,
+  adjustPlayerChips,
+  handleCalcDisconnect,
+  resetCalcRoom,
+  getCalcState,
+} from './calc-room.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -189,12 +197,56 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ===== 籌碼計算器 =====
+  socket.on('joinCalculator', (playerName: string, initialChips?: number) => {
+    try {
+      const { room, state } = joinCalcRoom(socket.id, playerName, initialChips ?? 0);
+      socket.join(room.id);
+      io.to(room.id).emit('calcRoomUpdate', room, state);
+      io.to(`display_${room.id}`).emit('calcRoomUpdate', room, state);
+      console.log(`${playerName} joined calculator (initial: ${initialChips ?? 0})`);
+    } catch (err: any) {
+      socket.emit('error', err.message);
+    }
+  });
+
+  socket.on('joinCalcDisplay', () => {
+    const room = getOrCreateCalcRoom();
+    const state = getCalcState();
+    socket.join(`display_${room.id}`);
+    socket.emit('calcRoomUpdate', room, state);
+  });
+
+  socket.on('adjustChips', (targetPlayerId: string, amount: number, note?: string) => {
+    const result = adjustPlayerChips(socket.id, targetPlayerId, amount, note);
+    if (!result) {
+      socket.emit('error', '調整籌碼失敗');
+      return;
+    }
+    io.to(result.room.id).emit('calcChipAdjusted', result.tx, result.room);
+    io.to(`display_${result.room.id}`).emit('calcChipAdjusted', result.tx, result.room);
+  });
+
+  socket.on('resetCalculator', () => {
+    const { room, state } = resetCalcRoom();
+    io.to(room.id).emit('calcRoomUpdate', room, state);
+    io.to(`display_${room.id}`).emit('calcRoomUpdate', room, state);
+  });
+
   socket.on('disconnect', () => {
     const room = handleDisconnect(socket.id);
     if (room) {
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
     }
+
+    const cRoom = handleCalcDisconnect(socket.id);
+    if (cRoom) {
+      const cState = getCalcState();
+      io.to(cRoom.id).emit('calcRoomUpdate', cRoom, cState);
+      io.to(`display_${cRoom.id}`).emit('calcRoomUpdate', cRoom, cState);
+    }
+
     console.log(`Player disconnected: ${socket.id}`);
   });
 });
@@ -232,6 +284,7 @@ if (isProduction) {
     <p>Prize Battle — Dev Server Running</p>
     <a href="http://localhost:5173">📱 玩家手機端 (Client)</a>
     <a href="http://localhost:5174/display/">🖥️ 大螢幕投放端 (Display)</a>
+    <a href="http://localhost:5174/display/calculator/">🧮 計算器投放端 (Calculator Display)</a>
     <p class="hint">確保已執行 pnpm dev 啟動所有服務</p>
   </div>
 </body>

@@ -7,6 +7,8 @@ import type {
   AuctionState,
   AuctionResult,
   LeaderboardEntry,
+  CalculatorState,
+  ChipTransaction,
 } from './types.js';
 
 export interface ServerToClientEvents {
@@ -33,6 +35,10 @@ export interface ServerToClientEvents {
 
   // 結算
   finalResult: (leaderboard: LeaderboardEntry[]) => void;
+
+  // 籌碼計算器
+  calcRoomUpdate: (room: Room, state: CalculatorState) => void;
+  calcChipAdjusted: (tx: ChipTransaction, room: Room) => void;
 }
 
 export interface ClientToServerEvents {
@@ -59,4 +65,10 @@ export interface ClientToServerEvents {
 
   // 重新開始
   playAgain: () => void;
+
+  // 籌碼計算器
+  joinCalculator: (playerName: string, initialChips?: number) => void;
+  joinCalcDisplay: () => void;
+  adjustChips: (targetPlayerId: string, amount: number, note?: string) => void;
+  resetCalculator: () => void;
 }

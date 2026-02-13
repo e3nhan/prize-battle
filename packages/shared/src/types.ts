@@ -10,8 +10,11 @@ export interface Player {
 }
 
 // ===== 房間 =====
+export type RoomMode = 'game' | 'calculator';
+
 export interface Room {
   id: string;
+  mode: RoomMode;
   players: Player[];
   maxPlayers: number;
   status: RoomStatus;
@@ -20,6 +23,21 @@ export interface Room {
 }
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
+
+// ===== 籌碼計算器 =====
+export interface ChipTransaction {
+  id: string;
+  fromPlayerId: string;
+  targetPlayerId: string;
+  amount: number;
+  newBalance: number;
+  timestamp: number;
+  note?: string;
+}
+
+export interface CalculatorState {
+  transactions: ChipTransaction[];
+}
 
 // ===== 遊戲狀態 =====
 export interface GameState {
