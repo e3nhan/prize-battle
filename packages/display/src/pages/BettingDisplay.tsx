@@ -87,45 +87,61 @@ export default function BettingDisplay() {
         </div>
 
         {/* Results */}
-        {phase === 'betting_result' && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-3xl"
-          >
-            <div className="grid grid-cols-4 gap-3">
-              {room.players.map((player) => {
-                const result = bettingResult.playerResults[player.id];
-                if (!result) return null;
+        {phase === 'betting_result' && (() => {
+          const hasAnyWinner = Object.values(bettingResult.playerResults).some((r) => r.won);
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-3xl"
+            >
+              {!hasAnyWinner && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center text-2xl font-bold text-gray-300 mb-4"
+                >
+                  🤷 沒有贏家 — 籌碼已退回
+                </motion.p>
+              )}
+              <div className="grid grid-cols-4 gap-3">
+                {room.players.map((player) => {
+                  const result = bettingResult.playerResults[player.id];
+                  if (!result) return null;
+                  const hasBet = confirmedBets.has(player.id);
+                  const noWinnerRefund = hasBet && !hasAnyWinner;
 
-                return (
-                  <motion.div
-                    key={player.id}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className={`p-4 rounded-xl border text-center ${
-                      result.won
-                        ? 'border-neon-green/50 bg-neon-green/10'
-                        : result.payout < 0
-                          ? 'border-accent/50 bg-accent/10'
-                          : 'border-gray-700 bg-secondary'
-                    }`}
-                  >
-                    <span className="text-2xl">{player.avatar}</span>
-                    <p className="font-bold text-sm mt-1">{player.name}</p>
-                    <p className={`text-lg font-bold mt-1 ${
-                      result.payout > 0 ? 'text-neon-green' :
-                      result.payout < 0 ? 'text-accent' : 'text-gray-400'
-                    }`}>
-                      {result.payout > 0 ? '+' : ''}{result.payout}
-                    </p>
-                    <p className="text-xs text-gold mt-1">🪙 {result.newChips}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
+                  return (
+                    <motion.div
+                      key={player.id}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className={`p-4 rounded-xl border text-center ${
+                        result.won
+                          ? 'border-neon-green/50 bg-neon-green/10'
+                          : result.payout < 0
+                            ? 'border-accent/50 bg-accent/10'
+                            : 'border-gray-700 bg-secondary'
+                      }`}
+                    >
+                      <span className="text-2xl">{player.avatar}</span>
+                      <p className="font-bold text-sm mt-1">{player.name}</p>
+                      <p className={`text-lg font-bold mt-1 ${
+                        result.payout > 0 ? 'text-neon-green' :
+                        result.payout < 0 ? 'text-accent' : 'text-gray-400'
+                      }`}>
+                        {noWinnerRefund ? '退回' :
+                         result.payout > 0 ? `+${result.payout}` :
+                         `${result.payout}`}
+                      </p>
+                      <p className="text-xs text-gold mt-1">🪙 {result.newChips}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          );
+        })()}
       </div>
     );
   }

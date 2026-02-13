@@ -133,6 +133,12 @@ export default function BettingRound() {
               <h2 className="text-3xl font-black text-neon-green mb-2">贏了！</h2>
               <p className="text-2xl text-gold">+{myResult.payout} 籌碼</p>
             </>
+          ) : hasPlacedBet && myResult.payout === 0 ? (
+            <>
+              <p className="text-6xl mb-4">🤷</p>
+              <h2 className="text-3xl font-black text-gray-300 mb-2">沒有贏家</h2>
+              <p className="text-lg text-gray-400">籌碼已退回</p>
+            </>
           ) : hasPlacedBet ? (
             <>
               <p className="text-6xl mb-4">😢</p>
