@@ -11,9 +11,12 @@ export interface ScratchType {
   id: string;
   name: string;
   price: number;
-  winRate?: number;         // 官方中獎率 (%)，例如 60 表示 60%
-  jackpot?: number;         // 頭獎金額
-  expectedReturn?: number;  // 官方期望報酬率 (%)，例如 55 表示每花 100 預期拿回 55
+  winRate?: number;         // 官方整體中獎率 (%)
+  jackpot?: number;         // 最高獎金
+  jackpotCount?: number;    // 頭獎數量
+  jackpotRate?: number;     // 頭獎率 (%)
+  profitRate?: number;      // 賺錢率 (%)（中獎金額 > 面額的機率）
+  expectedReturn?: number;  // 回本率 (%)（期望報酬率）
 }
 
 export interface ScratchRecord {
@@ -34,21 +37,21 @@ export interface ScratchData {
 const DEFAULT_DATA: ScratchData = {
   people: ['韓宗錡', '陳源德', '江家同', '羅致遠', '蘇彥齊', '林東餘', '趙偉康', '李祐德'],
   scratchTypes: [
-    { id: 'caiyuan-100', name: '財源滾滾', price: 100 },
-    { id: 'horse-100', name: '馬年行大運', price: 100 },
-    { id: 'pushcoin-100', name: '推金幣', price: 100 },
-    { id: 'caishen-100', name: '財神報到', price: 100 },
-    { id: 'goldhorse-200', name: '金馬報喜', price: 200 },
-    { id: 'golddiamond-200', name: '金好鑽', price: 200 },
-    { id: 'sanyuan-200', name: '大三元', price: 200 },
-    { id: 'lucky-200', name: '好運連發', price: 200 },
-    { id: 'double-200', name: '獎金樂翻倍', price: 200 },
-    { id: 'ocean-300', name: '海底大尋寶', price: 300 },
-    { id: 'goldhorseaward-500', name: '金馬獎', price: 500 },
-    { id: 'wulu-500', name: '五路財神', price: 500 },
-    { id: 'hachu-500', name: '哈啾咪', price: 500 },
-    { id: 'dajili-1000', name: '1200萬大吉利', price: 1000 },
-    { id: 'hongbao-2000', name: '2000萬超級紅包', price: 2000 },
+    { id: 'caiyuan-100', name: '財源滾滾', price: 100, jackpot: 300000, jackpotCount: 7, jackpotRate: 0.0000860, winRate: 33.00, profitRate: 13.20, expectedReturn: 33.00 },
+    { id: 'horse-100', name: '馬年行大運', price: 100, jackpot: 50000, jackpotCount: 150, jackpotRate: 0.0018000, winRate: 50.10, profitRate: 3.42, expectedReturn: 50.10 },
+    { id: 'pushcoin-100', name: '推金幣', price: 100, jackpot: 500000, jackpotCount: 8, jackpotRate: 0.0001000, winRate: 30.00, profitRate: 16.36, expectedReturn: 30.00 },
+    { id: 'caishen-100', name: '財神報到', price: 100, jackpot: 600000, jackpotCount: 8, jackpotRate: 0.0001200, winRate: 32.00, profitRate: 12.00, expectedReturn: 32.00 },
+    { id: 'goldhorse-200', name: '金馬報喜', price: 200, jackpot: 100000, jackpotCount: 550, jackpotRate: 0.0071900, winRate: 50.35, profitRate: 14.24, expectedReturn: 50.35 },
+    { id: 'golddiamond-200', name: '金好鑽', price: 200, jackpot: 2000000, jackpotCount: 8, jackpotRate: 0.0001070, winRate: 34.50, profitRate: 18.89, expectedReturn: 34.50 },
+    { id: 'sanyuan-200', name: '大三元', price: 200, jackpot: 2000000, jackpotCount: 7, jackpotRate: 0.0000920, winRate: 34.00, profitRate: 16.32, expectedReturn: 34.00 },
+    { id: 'lucky-200', name: '好運連發', price: 200, jackpot: 2000000, jackpotCount: 7, jackpotRate: 0.0001100, winRate: 36.00, profitRate: 15.76, expectedReturn: 36.00 },
+    { id: 'double-200', name: '獎金樂翻倍', price: 200, jackpot: 2000000, jackpotCount: 8, jackpotRate: 0.0001300, winRate: 31.00, profitRate: 17.06, expectedReturn: 31.00 },
+    { id: 'ocean-300', name: '海底大尋寶', price: 300, jackpot: 3000000, jackpotCount: 5, jackpotRate: 0.0000490, winRate: 36.00, profitRate: 19.57, expectedReturn: 36.00 },
+    { id: 'goldhorseaward-500', name: '金馬獎', price: 500, jackpot: 3000000, jackpotCount: 14, jackpotRate: 0.0001870, winRate: 100.00, profitRate: 14.44, expectedReturn: 38.44 },
+    { id: 'wulu-500', name: '五路財神', price: 500, jackpot: 5000000, jackpotCount: 8, jackpotRate: 0.0001230, winRate: 40.72, profitRate: 14.79, expectedReturn: 40.72 },
+    { id: 'hachu-500', name: '哈啾咪', price: 500, jackpot: 5000000, jackpotCount: 4, jackpotRate: 0.0000800, winRate: 42.02, profitRate: 13.22, expectedReturn: 42.02 },
+    { id: 'dajili-1000', name: '1200萬大吉利', price: 1000, jackpot: 12000000, jackpotCount: 8, jackpotRate: 0.0000840, winRate: 70.00, profitRate: 19.07, expectedReturn: 37.47 },
+    { id: 'hongbao-2000', name: '2000萬超級紅包', price: 2000, jackpot: 20000000, jackpotCount: 10, jackpotRate: 0.0000870, winRate: 69.33, profitRate: 10.29, expectedReturn: 29.33 },
   ],
   records: [],
 };

@@ -7,9 +7,12 @@ interface ScratchType {
   id: string;
   name: string;
   price: number;
-  winRate?: number;         // 官方中獎率 (%)
-  jackpot?: number;         // 頭獎金額
-  expectedReturn?: number;  // 官方期望報酬率 (%)
+  winRate?: number;         // 官方整體中獎率 (%)
+  jackpot?: number;         // 最高獎金
+  jackpotCount?: number;    // 頭獎數量
+  jackpotRate?: number;     // 頭獎率 (%)
+  profitRate?: number;      // 賺錢率 (%)
+  expectedReturn?: number;  // 回本率 (%)
 }
 
 interface ScratchRecord {
@@ -210,13 +213,15 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
       <div>
         <label className="block text-sm text-gray-400 mb-2">
           中獎金額 {selectedType && <span className="text-gold">(花費 ${selectedType.price})</span>}
-          {selectedType?.winRate != null && (
-            <span className="text-gray-500 ml-2">中獎率 {selectedType.winRate}%</span>
-          )}
-          {selectedType?.jackpot != null && (
-            <span className="text-gray-500 ml-2">頭獎 ${selectedType.jackpot.toLocaleString()}</span>
-          )}
         </label>
+        {selectedType && (selectedType.winRate != null || selectedType.jackpot != null) && (
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 mb-2">
+            {selectedType.winRate != null && <span>中獎率 {selectedType.winRate}%</span>}
+            {selectedType.profitRate != null && <span>賺錢率 {selectedType.profitRate}%</span>}
+            {selectedType.expectedReturn != null && <span>回本率 {selectedType.expectedReturn}%</span>}
+            {selectedType.jackpot != null && <span>頭獎 ${selectedType.jackpot.toLocaleString()}</span>}
+          </div>
+        )}
         <input
           type="number"
           inputMode="numeric"
@@ -498,7 +503,8 @@ function StatsTab({ data }: { data: ScratchData }) {
             {typeStats.map((s) => {
               const actualWinRate = s.count > 0 ? Math.round((s.winCount / s.count) * 100) : 0;
               const actualReturn = s.totalSpent > 0 ? Math.round((s.totalWon / s.totalSpent) * 100) : 0;
-              const hasOfficialData = s.type.winRate != null || s.type.jackpot != null || s.type.expectedReturn != null;
+              const profitCount = data.records.filter((r) => r.scratchTypeId === s.type.id && r.prize > s.type.price).length;
+              const actualProfitRate = s.count > 0 ? Math.round((profitCount / s.count) * 100) : 0;
               return (
                 <div key={s.type.id} className="p-3 rounded-xl bg-secondary space-y-2">
                   <div className="flex items-center justify-between">
@@ -516,28 +522,48 @@ function StatsTab({ data }: { data: ScratchData }) {
                       <p className="text-[10px] text-gray-500">中獎率</p>
                       <p className="text-sm font-bold text-white">{actualWinRate}%</p>
                       {s.type.winRate != null && (
-                        <p className="text-[10px] text-gray-500">官方 {s.type.winRate}%</p>
+                        <p className={`text-[10px] ${actualWinRate >= s.type.winRate ? 'text-neon-green' : 'text-accent'}`}>
+                          官方 {s.type.winRate}%
+                        </p>
                       )}
                     </div>
                     <div className="p-1.5 rounded-lg bg-white/5">
-                      <p className="text-[10px] text-gray-500">報酬率</p>
+                      <p className="text-[10px] text-gray-500">賺錢率</p>
+                      <p className={`text-sm font-bold ${actualProfitRate > 0 ? 'text-neon-green' : 'text-accent'}`}>
+                        {actualProfitRate}%
+                      </p>
+                      {s.type.profitRate != null && (
+                        <p className={`text-[10px] ${actualProfitRate >= s.type.profitRate ? 'text-neon-green' : 'text-accent'}`}>
+                          官方 {s.type.profitRate}%
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-1.5 rounded-lg bg-white/5">
+                      <p className="text-[10px] text-gray-500">回本率</p>
                       <p className={`text-sm font-bold ${actualReturn >= 100 ? 'text-neon-green' : 'text-accent'}`}>
                         {actualReturn}%
                       </p>
                       {s.type.expectedReturn != null && (
-                        <p className="text-[10px] text-gray-500">官方 {s.type.expectedReturn}%</p>
-                      )}
-                    </div>
-                    <div className="p-1.5 rounded-lg bg-white/5">
-                      <p className="text-[10px] text-gray-500">最大獎</p>
-                      <p className="text-sm font-bold text-gold">
-                        ${s.count > 0 ? Math.max(...data.records.filter((r) => r.scratchTypeId === s.type.id).map((r) => r.prize)) : 0}
-                      </p>
-                      {s.type.jackpot != null && (
-                        <p className="text-[10px] text-gray-500">頭獎 ${s.type.jackpot.toLocaleString()}</p>
+                        <p className={`text-[10px] ${actualReturn >= s.type.expectedReturn ? 'text-neon-green' : 'text-accent'}`}>
+                          官方 {s.type.expectedReturn}%
+                        </p>
                       )}
                     </div>
                   </div>
+                  {/* 頭獎資訊 */}
+                  {(s.type.jackpot != null || s.type.jackpotCount != null) && (
+                    <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+                      {s.type.jackpot != null && (
+                        <span>頭獎 ${s.type.jackpot.toLocaleString()}</span>
+                      )}
+                      {s.type.jackpotCount != null && (
+                        <span>頭獎 {s.type.jackpotCount} 組</span>
+                      )}
+                      {s.type.jackpotRate != null && (
+                        <span>頭獎率 {s.type.jackpotRate.toFixed(5)}%</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -644,23 +670,23 @@ function SettingsTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => 
                   ×
                 </button>
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <input
                   type="number"
                   inputMode="decimal"
                   value={t.winRate ?? ''}
                   onChange={(e) => updateType(i, 'winRate', e.target.value)}
                   placeholder="中獎率%"
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
                     text-white text-xs focus:border-neon-green/50 focus:outline-none"
                 />
                 <input
                   type="number"
-                  inputMode="numeric"
-                  value={t.jackpot ?? ''}
-                  onChange={(e) => updateType(i, 'jackpot', e.target.value)}
-                  placeholder="頭獎金額"
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                  inputMode="decimal"
+                  value={t.profitRate ?? ''}
+                  onChange={(e) => updateType(i, 'profitRate', e.target.value)}
+                  placeholder="賺錢率%"
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
                     text-white text-xs focus:border-neon-green/50 focus:outline-none"
                 />
                 <input
@@ -668,8 +694,37 @@ function SettingsTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => 
                   inputMode="decimal"
                   value={t.expectedReturn ?? ''}
                   onChange={(e) => updateType(i, 'expectedReturn', e.target.value)}
-                  placeholder="期望報酬%"
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                  placeholder="回本率%"
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                    text-white text-xs focus:border-neon-green/50 focus:outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={t.jackpot ?? ''}
+                  onChange={(e) => updateType(i, 'jackpot', e.target.value)}
+                  placeholder="頭獎金額"
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                    text-white text-xs focus:border-neon-green/50 focus:outline-none"
+                />
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={t.jackpotCount ?? ''}
+                  onChange={(e) => updateType(i, 'jackpotCount', e.target.value)}
+                  placeholder="頭獎數量"
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                    text-white text-xs focus:border-neon-green/50 focus:outline-none"
+                />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={t.jackpotRate ?? ''}
+                  onChange={(e) => updateType(i, 'jackpotRate', e.target.value)}
+                  placeholder="頭獎率%"
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
                     text-white text-xs focus:border-neon-green/50 focus:outline-none"
                 />
               </div>
