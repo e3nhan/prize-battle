@@ -10,8 +10,8 @@ interface BetSliderProps {
 export default function BetSlider({ min, max, value, onChange }: BetSliderProps) {
   const presets = [
     { label: '最小', value: min },
-    { label: '25%', value: Math.floor(max * 0.25) },
-    { label: '50%', value: Math.floor(max * 0.5) },
+    { label: '25%', value: Math.max(min, Math.floor(max * 0.25)) },
+    { label: '50%', value: Math.max(min, Math.floor(max * 0.5)) },
     { label: 'ALL IN', value: max },
   ];
 
@@ -36,21 +36,32 @@ export default function BetSlider({ min, max, value, onChange }: BetSliderProps)
           [&::-webkit-slider-thumb]:rounded-full
           [&::-webkit-slider-thumb]:shadow-lg"
       />
+      <div className="flex justify-between text-xs text-gray-600">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
 
       <div className="flex gap-2">
-        {presets.map((preset) => (
-          <button
-            key={preset.label}
-            onClick={() => onChange(Math.max(min, preset.value))}
-            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all
-              ${preset.label === 'ALL IN'
-                ? 'bg-accent/30 text-accent border border-accent/50 hover:bg-accent/50'
-                : 'bg-secondary text-gray-300 border border-gray-600 hover:border-gold hover:text-gold'
-              }`}
-          >
-            {preset.label}
-          </button>
-        ))}
+        {presets.map((preset) => {
+          const isActive = value === preset.value;
+          return (
+            <button
+              key={preset.label}
+              onClick={() => onChange(preset.value)}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all
+                ${preset.label === 'ALL IN'
+                  ? isActive
+                    ? 'bg-accent text-white border border-accent'
+                    : 'bg-accent/30 text-accent border border-accent/50 hover:bg-accent/50'
+                  : isActive
+                    ? 'bg-gold/20 text-gold border border-gold'
+                    : 'bg-secondary text-gray-300 border border-gray-600 hover:border-gold hover:text-gold'
+                }`}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

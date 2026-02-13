@@ -29,12 +29,12 @@ export default function BidInput({ min, max, onSubmit, disabled }: BidInputProps
 
       <input
         type="range"
-        min={0}
+        min={min}
         max={max}
-        step={10}
-        value={amount}
+        step={Math.max(10, Math.floor(max / 100) * 10)}
+        value={amount === 0 ? min : amount}
         onChange={(e) => setAmount(Number(e.target.value))}
-        disabled={disabled}
+        disabled={disabled || amount === 0}
         className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer
           [&::-webkit-slider-thumb]:appearance-none
           [&::-webkit-slider-thumb]:w-7
@@ -44,6 +44,10 @@ export default function BidInput({ min, max, onSubmit, disabled }: BidInputProps
           [&::-webkit-slider-thumb]:shadow-lg
           disabled:opacity-50"
       />
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <span>最低 {min}</span>
+        <span>最高 {max}</span>
+      </div>
 
       <div className="flex gap-2 flex-wrap">
         {presets.map((preset) => (

@@ -45,6 +45,7 @@ export function placeBet(
   optionId: string,
   amount: number,
   playerChips: number,
+  choiceId?: string,
 ): boolean {
   if (state.playerBets[playerId]) return false;
   if (state.timeLeft <= 0) return false;
@@ -55,8 +56,15 @@ export function placeBet(
   const option = state.options.find((o: BetOption) => o.id === optionId);
   if (!option) return false;
 
+  // group_predict 時驗證 choiceId 是合法的 A/B 選項
+  if (choiceId) {
+    const choiceOption = state.options.find((o: BetOption) => o.id === choiceId);
+    if (!choiceOption) return false;
+  }
+
   state.playerBets[playerId] = {
     optionId,
+    ...(choiceId ? { choiceId } : {}),
     amount,
     timestamp: Date.now(),
   };

@@ -284,6 +284,7 @@ export function handlePlaceBet(
   playerId: string,
   optionId: string,
   amount: number,
+  choiceId?: string,
 ): boolean {
   const game = activeGames.get(roomId);
   if (!game) return false;
@@ -295,7 +296,7 @@ export function handlePlaceBet(
   const player = room.players.find((p: Player) => p.id === playerId);
   if (!player) return false;
 
-  const success = placeBet(gs.bettingState, playerId, optionId, amount, player.chips);
+  const success = placeBet(gs.bettingState, playerId, optionId, amount, player.chips, choiceId);
 
   if (success) {
     io.to(roomId).emit('playerBetConfirmed', playerId);

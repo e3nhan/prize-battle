@@ -59,6 +59,17 @@ export function setPlayerReady(socketId: string): Room | null {
   return room;
 }
 
+export function setPlayerUnready(socketId: string): Room | null {
+  const roomId = playerRoomMap.get(socketId);
+  if (!roomId) return null;
+  const room = rooms.get(roomId);
+  if (!room || room.status !== 'waiting') return null;
+
+  const player = room.players.find((p: Player) => p.id === socketId);
+  if (player) player.isReady = false;
+  return room;
+}
+
 export function isAllReady(room: Room): boolean {
   return room.players.length >= 2 && room.players.every((p: Player) => p.isReady);
 }

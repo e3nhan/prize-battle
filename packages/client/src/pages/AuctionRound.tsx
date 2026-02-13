@@ -15,11 +15,14 @@ export default function AuctionRound() {
   const playerId = useGameStore((s) => s.playerId);
   const hasSubmittedBid = useGameStore((s) => s.hasSubmittedBid);
   const setHasSubmittedBid = useGameStore((s) => s.setHasSubmittedBid);
+  const confirmedBids = useGameStore((s) => s.confirmedBids);
 
   if (!auctionState || !room) return null;
 
   const me = room.players.find((p) => p.id === playerId);
   const myChips = me?.chips ?? 0;
+  const confirmedCount = confirmedBids.size;
+  const totalPlayers = room.players.filter((p) => p.isConnected).length;
 
   const handleSubmitBid = (amount: number) => {
     getSocket().emit('submitBid', amount);
@@ -71,6 +74,14 @@ export default function AuctionRound() {
               </p>
               <h2 className="text-2xl font-bold text-gold">你得標了！</h2>
               <p className="text-lg">出價: 🪙{auctionResult.winningBid}</p>
+              {(() => {
+                const delta = myNewChips - myChips;
+                return (
+                  <p className={`text-lg font-bold ${delta >= 0 ? 'text-neon-green' : 'text-accent'}`}>
+                    {delta >= 0 ? `+${delta}` : `${delta}`} 籌碼
+                  </p>
+                );
+              })()}
             </>
           ) : (
             <>
@@ -125,6 +136,7 @@ export default function AuctionRound() {
         <p className="text-gray-400 italic">
           「{auctionState.currentBox.hint}」
         </p>
+        <p className="text-xs text-gray-600 mt-2">⚠️ 提示可能為誤導</p>
       </motion.div>
 
       {/* Bid input or waiting */}
@@ -137,7 +149,9 @@ export default function AuctionRound() {
           >
             <p className="text-4xl mb-2">✅</p>
             <p className="text-xl font-bold text-neon-green">已出價</p>
-            <p className="text-gray-400 mt-1">等待其他玩家...</p>
+            <p className="text-gray-400 mt-1">
+              等待其他玩家... ({confirmedCount}/{totalPlayers})
+            </p>
           </motion.div>
         </div>
       ) : (

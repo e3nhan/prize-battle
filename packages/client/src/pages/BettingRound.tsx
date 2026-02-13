@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
 import { getBetTypeTitle, getMinBet } from '@prize-battle/shared';
 import Timer from '../components/Timer';
 import ChipDisplay from '../components/ChipDisplay';
 import BetSlider from '../components/BetSlider';
-import type { BetType } from '@prize-battle/shared';
 import { GAME_CONFIG } from '@prize-battle/shared';
 
 export default function BettingRound() {
@@ -18,22 +17,33 @@ export default function BettingRound() {
   const playerId = useGameStore((s) => s.playerId);
   const hasPlacedBet = useGameStore((s) => s.hasPlacedBet);
   const setHasPlacedBet = useGameStore((s) => s.setHasPlacedBet);
+  const confirmedBets = useGameStore((s) => s.confirmedBets);
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null); // group_predict A/B
   const [betAmount, setBetAmount] = useState(100);
+
+  // 每輪開始時重置選擇狀態，避免舊選擇殘留到下一輪
+  useEffect(() => {
+    setSelectedOption(null);
+    setSelectedChoice(null);
+  }, [bettingState?.roundNumber]);
 
   if (!bettingState || !room) return null;
 
+  const isGroupPredict = bettingState.type === 'group_predict';
   const me = room.players.find((p) => p.id === playerId);
   const myChips = me?.chips ?? 0;
   const minBet = getMinBet(myChips);
 
   const handlePlaceBet = () => {
     if (!selectedOption || hasPlacedBet) return;
-    getSocket().emit('placeBet', { optionId: selectedOption, amount: betAmount });
+    // group_predict: optionId = predict_N, choiceId = choice_A/B
+    const payload = isGroupPredict && selectedChoice
+      ? { optionId: selectedOption, amount: betAmount, choiceId: selectedChoice }
+      : { optionId: selectedOption, amount: betAmount };
+    getSocket().emit('placeBet', payload);
     setHasPlacedBet(true);
-
-    // Vibrate on bet
     if (navigator.vibrate) navigator.vibrate(50);
   };
 
@@ -106,13 +116,20 @@ export default function BettingRound() {
   }
 
   // Betting UI
-  const isGroupPredict = bettingState.type === 'group_predict';
   const betOptions = isGroupPredict
     ? bettingState.options.filter((o) => o.id.startsWith('choice_'))
     : bettingState.options;
   const predictOptions = isGroupPredict
     ? bettingState.options.filter((o) => o.id.startsWith('predict_'))
     : [];
+
+  // group_predict: 需要 A/B + 預測人數都選齊才能送出
+  const canConfirm = isGroupPredict
+    ? !!(selectedChoice && selectedOption)
+    : !!selectedOption;
+
+  const confirmedCount = confirmedBets.size;
+  const totalPlayers = room.players.filter((p) => p.isConnected).length;
 
   return (
     <div className="h-full flex flex-col p-4">
@@ -140,39 +157,57 @@ export default function BettingRound() {
           >
             <p className="text-4xl mb-2">✅</p>
             <p className="text-xl font-bold text-neon-green">已下注</p>
-            <p className="text-gray-400 mt-1">等待其他玩家...</p>
+            <p className="text-gray-400 mt-1">
+              等待其他玩家... ({confirmedCount}/{totalPlayers})
+            </p>
           </motion.div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto py-3 space-y-3">
           {/* Choice buttons */}
           <div className={`grid gap-2 ${betOptions.length <= 3 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {betOptions.map((option) => (
-              <motion.button
-                key={option.id}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedOption(option.id)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                  selectedOption === option.id
-                    ? 'border-gold bg-gold/10 text-gold'
-                    : 'border-gray-700 bg-secondary text-white hover:border-gray-500'
-                }`}
-              >
-                <p className="font-bold text-lg">{option.label}</p>
-                {option.description && (
-                  <p className="text-sm text-gray-400 mt-1">{option.description}</p>
-                )}
-                {option.odds > 0 && (
-                  <p className="text-sm text-neon-blue mt-1">賠率 1:{option.odds}</p>
-                )}
-              </motion.button>
-            ))}
+            {betOptions.map((option) => {
+              // group_predict 的 A/B 按鈕用 selectedChoice，其他用 selectedOption
+              const isSelected = isGroupPredict
+                ? selectedChoice === option.id
+                : selectedOption === option.id;
+              return (
+                <motion.button
+                  key={option.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    if (isGroupPredict) {
+                      setSelectedChoice(option.id);
+                    } else {
+                      setSelectedOption(option.id);
+                    }
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    isSelected
+                      ? 'border-gold bg-gold/10 text-gold'
+                      : 'border-gray-700 bg-secondary text-white hover:border-gray-500'
+                  }`}
+                >
+                  <p className="font-bold text-lg">{option.label}</p>
+                  {option.description && (
+                    <p className="text-sm text-gray-400 mt-1">{option.description}</p>
+                  )}
+                  {option.odds > 0 && (
+                    <p className="text-sm text-neon-blue mt-1">賠率 1:{option.odds}</p>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
 
-          {/* Predict options for group predict */}
-          {isGroupPredict && selectedOption?.startsWith('choice_') && (
+          {/* Predict options for group predict — 選完 A/B 才顯示 */}
+          {isGroupPredict && selectedChoice && (
             <div className="mt-3">
-              <p className="text-sm text-gray-400 mb-2">預測有幾人選 A？</p>
+              <p className="text-sm text-gray-400 mb-2">
+                你選了 <span className="text-gold font-bold">
+                  {selectedChoice === 'choice_A' ? 'A' : 'B'}
+                </span>，預測有幾人選 A？
+              </p>
               <div className="flex flex-wrap gap-2">
                 {predictOptions.map((option) => (
                   <button
@@ -181,7 +216,7 @@ export default function BettingRound() {
                     className={`px-4 py-2 rounded-lg border transition-all ${
                       selectedOption === option.id
                         ? 'border-gold bg-gold/10 text-gold'
-                        : 'border-gray-700 bg-secondary text-gray-300'
+                        : 'border-gray-700 bg-secondary text-gray-300 hover:border-gray-500'
                     }`}
                   >
                     {option.label}
@@ -191,7 +226,7 @@ export default function BettingRound() {
             </div>
           )}
 
-          {/* Bet amount slider */}
+          {/* Bet amount slider — group_predict 不需要押注金額 */}
           {selectedOption && !isGroupPredict && (
             <BetSlider
               min={minBet}
@@ -202,7 +237,7 @@ export default function BettingRound() {
           )}
 
           {/* Confirm button */}
-          {selectedOption && (
+          {canConfirm && (
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

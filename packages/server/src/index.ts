@@ -10,6 +10,7 @@ import {
   getOrCreateMainRoom,
   joinMainRoom,
   setPlayerReady,
+  setPlayerUnready,
   isAllReady,
   handleDisconnect,
   getRoomBySocketId,
@@ -106,6 +107,13 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('playerUnready', () => {
+    const room = setPlayerUnready(socket.id);
+    if (!room) return;
+    io.to(room.id).emit('roomUpdate', room);
+    io.to(`display_${room.id}`).emit('roomUpdate', room);
+  });
+
   // Display screen
   socket.on('joinDisplay', () => {
     const room = getOrCreateMainRoom();
@@ -117,10 +125,10 @@ io.on('connection', (socket) => {
   });
 
   // Betting
-  socket.on('placeBet', (bet: { optionId: string; amount: number }) => {
+  socket.on('placeBet', (bet: { optionId: string; amount: number; choiceId?: string }) => {
     const roomId = getPlayerRoomId(socket.id);
     if (!roomId) return;
-    const success = handlePlaceBet(io, roomId, socket.id, bet.optionId, bet.amount);
+    const success = handlePlaceBet(io, roomId, socket.id, bet.optionId, bet.amount, bet.choiceId);
     if (!success) {
       socket.emit('error', '下注失敗');
     }

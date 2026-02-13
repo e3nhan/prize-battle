@@ -71,6 +71,7 @@ export interface BetOption {
 
 export interface PlayerBet {
   optionId: string;
+  choiceId?: string; // group_predict 用：記錄 A/B 選擇，optionId 為預測人數
   amount: number;
   timestamp: number;
 }

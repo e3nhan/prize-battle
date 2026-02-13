@@ -38,12 +38,13 @@ export interface ClientToServerEvents {
   // 房間
   quickJoin: (playerName: string) => void;
   playerReady: () => void;
+  playerUnready: () => void;
 
   // 大螢幕
   joinDisplay: () => void;
 
   // 押注
-  placeBet: (bet: { optionId: string; amount: number }) => void;
+  placeBet: (bet: { optionId: string; amount: number; choiceId?: string }) => void;
 
   // 拍賣
   submitBid: (amount: number) => void;

@@ -18,6 +18,10 @@ export default function Lobby() {
     getSocket().emit('playerReady');
   };
 
+  const handleUnready = () => {
+    getSocket().emit('playerUnready');
+  };
+
   const handleAddBot = () => {
     getSocket().emit('addBots', 1);
   };
@@ -122,17 +126,27 @@ export default function Lobby() {
             {countdown}
           </motion.p>
         </motion.div>
+      ) : isReady ? (
+        <div className="space-y-2">
+          <div className="w-full py-4 rounded-xl text-center text-lg font-bold
+            bg-neon-green/20 text-neon-green border border-neon-green/30">
+            ✅ 已準備，等待其他玩家
+          </div>
+          <button
+            onClick={handleUnready}
+            className="w-full py-3 rounded-xl text-base font-bold transition-all active:scale-95
+              bg-secondary text-gray-400 border border-gray-600 hover:border-accent hover:text-accent"
+          >
+            取消準備
+          </button>
+        </div>
       ) : (
         <button
           onClick={handleReady}
-          disabled={isReady}
-          className={`w-full py-5 rounded-xl text-xl font-bold transition-all active:scale-95 ${
-            isReady
-              ? 'bg-neon-green/20 text-neon-green border border-neon-green/30'
-              : 'bg-gradient-to-r from-gold/80 to-yellow-600 text-primary glow-gold'
-          }`}
+          className="w-full py-5 rounded-xl text-xl font-bold transition-all active:scale-95
+            bg-gradient-to-r from-gold/80 to-yellow-600 text-primary glow-gold"
         >
-          {isReady ? '✅ 已準備，等待其他玩家' : '準備就緒'}
+          準備就緒
         </button>
       )}
     </div>

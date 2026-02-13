@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface TimerProps {
@@ -8,6 +9,13 @@ interface TimerProps {
 export default function Timer({ seconds, total }: TimerProps) {
   const percentage = (seconds / total) * 100;
   const isUrgent = seconds <= 5;
+
+  // 緊急倒數時震動提示（≤5 秒每秒震動一次）
+  useEffect(() => {
+    if (isUrgent && seconds > 0 && navigator.vibrate) {
+      navigator.vibrate(80);
+    }
+  }, [seconds, isUrgent]);
 
   return (
     <div className="w-full">

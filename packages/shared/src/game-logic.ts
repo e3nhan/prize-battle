@@ -178,7 +178,7 @@ export function getGroupPredictOptions(playerCount: number): BetOption[] {
 }
 
 export function resolveGroupPredict(
-  playerBets: Record<string, { optionId: string; amount: number }>,
+  playerBets: Record<string, { optionId: string; choiceId?: string; amount: number }>,
   playerCount: number,
 ): { animationData: GroupPredictAnimationData; bonusPlayers: string[] } {
   let choiceA = 0;
@@ -186,10 +186,12 @@ export function resolveGroupPredict(
   const predictions: Record<string, number> = {};
 
   for (const [playerId, bet] of Object.entries(playerBets)) {
-    if (bet.optionId === 'choice_A') choiceA++;
-    else if (bet.optionId === 'choice_B') choiceB++;
+    // choiceId 記錄 A/B 選擇（新格式），fallback 舊格式直接從 optionId 讀
+    const choice = bet.choiceId ?? bet.optionId;
+    if (choice === 'choice_A') choiceA++;
+    else if (choice === 'choice_B') choiceB++;
 
-    // Check for prediction option
+    // optionId 為 predict_N 時記錄預測人數
     const predMatch = bet.optionId.match(/predict_(\d+)/);
     if (predMatch) {
       predictions[playerId] = parseInt(predMatch[1]);
