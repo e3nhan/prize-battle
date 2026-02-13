@@ -139,7 +139,7 @@ function resolvePoolBetting(
 
     const payout = share - bet.amount;
     player.chips += payout;
-    playerResults[playerId] = { won: payout > 0, payout, newChips: player.chips };
+    playerResults[playerId] = { won: true, payout, newChips: player.chips };
   }
 
   // Losers

@@ -100,14 +100,14 @@ export default function BettingDisplay() {
 
         {/* Results */}
         {phase === 'betting_result' && (() => {
-          const hasAnyWinner = Object.values(bettingResult.playerResults).some((r) => r.won);
+          const hasAnyProfit = Object.values(bettingResult.playerResults).some((r) => r.payout > 0);
           return (
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               className="w-full max-w-3xl"
             >
-              {!hasAnyWinner && (
+              {!hasAnyProfit && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -124,7 +124,7 @@ export default function BettingDisplay() {
                   const result = bettingResult.playerResults[player.id];
                   if (!result) return null;
                   const hasBet = confirmedBets.has(player.id);
-                  const noWinnerRefund = hasBet && !hasAnyWinner;
+                  const noWinnerRefund = hasBet && !hasAnyProfit;
 
                   const bet = bettingResult.playerBets?.[player.id];
                   const betOption = bet ? bettingState.options.find((o) => o.id === bet.optionId) : null;
@@ -136,11 +136,13 @@ export default function BettingDisplay() {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       className={`p-4 rounded-xl border text-center ${
-                        result.won
+                        result.payout > 0
                           ? 'border-neon-green/50 bg-neon-green/10'
-                          : result.payout < 0
-                            ? 'border-accent/50 bg-accent/10'
-                            : 'border-gray-700 bg-secondary'
+                          : result.won && result.payout <= 0
+                            ? 'border-yellow-400/50 bg-yellow-400/10'
+                            : result.payout < 0
+                              ? 'border-accent/50 bg-accent/10'
+                              : 'border-gray-700 bg-secondary'
                       }`}
                     >
                       <span className="text-2xl">{player.avatar}</span>
@@ -156,10 +158,13 @@ export default function BettingDisplay() {
                       )}
                       <p className={`text-lg font-bold mt-1 ${
                         result.payout > 0 ? 'text-neon-green' :
+                        result.won && result.payout <= 0 ? 'text-yellow-400' :
                         result.payout < 0 ? 'text-accent' : 'text-gray-400'
                       }`}>
                         {noWinnerRefund ? '退回' :
                          result.payout > 0 ? `+${result.payout}` :
+                         result.won && result.payout < 0 ? `猜對 ${result.payout}` :
+                         result.won && result.payout === 0 ? '猜對 ±0' :
                          `${result.payout}`}
                       </p>
                       <p className="text-xs text-gold mt-1">🪙 {result.newChips}</p>
