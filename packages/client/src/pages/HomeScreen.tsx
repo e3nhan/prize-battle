@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 
 interface HomeScreenProps {
-  onSelectMode: (mode: 'game' | 'calculator') => void;
+  onSelectMode: (mode: 'game' | 'calculator' | 'scratch') => void;
 }
 
 export default function HomeScreen({ onSelectMode }: HomeScreenProps) {
@@ -37,6 +37,15 @@ export default function HomeScreen({ onSelectMode }: HomeScreenProps) {
             hover:bg-neon-blue/10"
         >
           🧮 籌碼計算器
+        </button>
+
+        <button
+          onClick={() => onSelectMode('scratch')}
+          className="w-full py-6 rounded-xl text-xl font-bold transition-all active:scale-95
+            bg-secondary border-2 border-neon-green/50 text-neon-green
+            hover:bg-neon-green/10"
+        >
+          🎫 刮刮樂記錄器
         </button>
       </motion.div>
     </div>

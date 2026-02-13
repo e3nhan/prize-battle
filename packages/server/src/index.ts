@@ -28,6 +28,13 @@ import {
 } from './game-engine.js';
 import { addBots, removeBots, autoReadyBots } from './bot.js';
 import {
+  getAllData as getScratchData,
+  setPeople as setScratchPeople,
+  setScratchTypes,
+  addRecord as addScratchRecord,
+  deleteRecord as deleteScratchRecord,
+} from './scratch-store.js';
+import {
   getOrCreateCalcRoom,
   joinCalcRoom,
   adjustPlayerChips,
@@ -77,6 +84,37 @@ app.get('/api/room', (_req, res) => {
     return;
   }
   res.json({ id: room.id, playerCount: room.players.length, status: room.status });
+});
+
+// ===== 刮刮樂記錄器 API =====
+app.get('/api/scratch', (_req, res) => {
+  res.json(getScratchData());
+});
+
+app.put('/api/scratch/people', (req, res) => {
+  const { people } = req.body;
+  if (!Array.isArray(people)) { res.status(400).json({ error: 'people must be an array' }); return; }
+  res.json(setScratchPeople(people));
+});
+
+app.put('/api/scratch/types', (req, res) => {
+  const { types } = req.body;
+  if (!Array.isArray(types)) { res.status(400).json({ error: 'types must be an array' }); return; }
+  res.json(setScratchTypes(types));
+});
+
+app.post('/api/scratch/records', (req, res) => {
+  const { person, scratchTypeId, prize } = req.body;
+  if (!person || !scratchTypeId || prize === undefined) {
+    res.status(400).json({ error: 'Missing fields' }); return;
+  }
+  res.json(addScratchRecord({ person, scratchTypeId, prize }));
+});
+
+app.delete('/api/scratch/records/:id', (req, res) => {
+  const ok = deleteScratchRecord(req.params.id);
+  if (!ok) { res.status(404).json({ error: 'Record not found' }); return; }
+  res.json({ success: true });
 });
 
 // Initialize the main room on startup

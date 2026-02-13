@@ -12,8 +12,9 @@ import AuctionRound from './pages/AuctionRound';
 import Result from './pages/Result';
 import CalculatorJoin from './pages/CalculatorJoin';
 import CalculatorMain from './pages/CalculatorMain';
+import ScratchTracker from './pages/ScratchTracker';
 
-type AppMode = 'home' | 'game' | 'calculator';
+type AppMode = 'home' | 'game' | 'calculator' | 'scratch';
 
 function getInitialMode(): AppMode {
   return (sessionStorage.getItem('appMode') as AppMode) || 'home';
@@ -107,6 +108,10 @@ export default function App() {
 
   if (appMode === 'calculator') {
     return <CalcApp onBack={handleBack} />;
+  }
+
+  if (appMode === 'scratch') {
+    return <ScratchTracker onBack={handleBack} />;
   }
 
   return (
