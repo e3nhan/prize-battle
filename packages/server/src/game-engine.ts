@@ -142,17 +142,17 @@ function resolveBettingRound(io: TypedServer, roomId: string): void {
   const result = resolveBetting(bettingState, room.players);
   bettingState.result = result;
 
-  // Sync updated chips to all clients
-  io.to(roomId).emit('roomUpdate', room);
-  io.to(`display_${roomId}`).emit('roomUpdate', room);
-
-  // Send result after a brief delay for suspense
+  // 先送結果（含動畫資料），延遲 roomUpdate 到結果階段
+  // 避免玩家在揭曉動畫前就看到籌碼跳動
   setTimeout(() => {
     io.to(roomId).emit('bettingResult', result);
     io.to(`display_${roomId}`).emit('bettingResult', result);
 
-    // Show result for a few seconds
     setTimeout(() => {
+      // 進入結果階段時才同步籌碼，排行榜才會顯示正確數值
+      io.to(roomId).emit('roomUpdate', room);
+      io.to(`display_${roomId}`).emit('roomUpdate', room);
+
       gs.phase = 'betting_result';
       emitPhaseChange(io, roomId, 'betting_result');
 
