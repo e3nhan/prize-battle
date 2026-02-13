@@ -137,13 +137,41 @@ export default function Lobby() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-3"
           >
-            <div className="p-4 rounded-xl bg-secondary border border-gray-700 text-sm text-gray-300 space-y-2">
-              <p className="font-bold text-gold">遊戲流程</p>
-              <p>1. 押注預測（{GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪）：骰子、輪盤、硬幣等小遊戲，選擇下注贏取籌碼。</p>
-              <p>2. 拍賣戰（{GAME_CONFIG.TOTAL_AUCTION_ITEMS} 輪）：暗標競拍寶箱，可能是鑽石（大獎）、普通、炸彈（虧損）或神秘箱。</p>
-              <p className="font-bold text-gold mt-2">獎金分配</p>
-              <p>最終依籌碼排名分配獎金池：第1名 {GAME_CONFIG.PRIZE_DISTRIBUTION[0] * 100}%、第2名 {GAME_CONFIG.PRIZE_DISTRIBUTION[1] * 100}%、第3名 {GAME_CONFIG.PRIZE_DISTRIBUTION[2] * 100}%...</p>
-              <p className="text-gray-500 text-xs mt-1">初始籌碼：🪙{GAME_CONFIG.INITIAL_CHIPS}</p>
+            <div className="p-4 rounded-xl bg-secondary border border-gray-700 text-sm text-gray-300 space-y-3">
+              <div>
+                <p className="font-bold text-gold mb-1">遊戲目標</p>
+                <p>每人起始 🪙{GAME_CONFIG.INITIAL_CHIPS} 籌碼，經過兩階段比拼後，依最終籌碼排名分配獎金池。</p>
+              </div>
+
+              <div>
+                <p className="font-bold text-gold mb-1">第一階段：押注預測（{GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪）</p>
+                <p className="mb-1">每輪是不同的小遊戲，所有人的下注匯入獎池，猜對的人瓜分全部獎池（零和制：你贏的就是別人輸的）。</p>
+                <div className="text-xs text-gray-400 space-y-0.5 ml-2">
+                  <p>🎲 骰子猜大小 — 3 顆骰子猜總和大或小，豹子全退</p>
+                  <p>🎡 數字輪盤 — 8 格選 1 格，押冷門贏更多</p>
+                  <p>🪙 硬幣翻倍 — 丟 3 枚硬幣，挑戰越多枚風險越高、贏的比重越大</p>
+                  <p>📦 神秘箱 — 5 盒選 1，倍率 0x～3x，選到炸彈血本無歸</p>
+                  <p>🎯 骰子猜點數 — 2 顆骰子猜精確點數或範圍</p>
+                  <p>🤔 群體預測 — 選 A/B 再猜幾人選 A，預測最準的瓜分獎池</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-bold text-gold mb-1">第二階段：拍賣戰（{GAME_CONFIG.TOTAL_AUCTION_ITEMS} 輪）</p>
+                <p className="mb-1">暗標競拍寶箱，最高價者得標（同價流標）。寶箱類型：</p>
+                <div className="text-xs text-gray-400 space-y-0.5 ml-2">
+                  <p>💎 鑽石 x{GAME_CONFIG.BOX_DISTRIBUTION.diamond} — 從其他人獲得出價 ×2 的籌碼</p>
+                  <p>📦 普通 x{GAME_CONFIG.BOX_DISTRIBUTION.normal} — 從其他人獲得出價 30%～60%</p>
+                  <p>💀 炸彈 x{GAME_CONFIG.BOX_DISTRIBUTION.bomb} — 損失出價 80% 給其他人</p>
+                  <p>🎭 神秘 x{GAME_CONFIG.BOX_DISTRIBUTION.mystery} — 隨機特殊效果（偷竊/交換/重分配等）</p>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">提示有 30% 機率誤導！最低出價 🪙{GAME_CONFIG.MIN_BID}</p>
+              </div>
+
+              <div>
+                <p className="font-bold text-gold mb-1">獎金分配</p>
+                <p>最終依籌碼排名：第 1 名 {GAME_CONFIG.PRIZE_DISTRIBUTION[0] * 100}%、第 2 名 {GAME_CONFIG.PRIZE_DISTRIBUTION[1] * 100}%、第 3 名 {GAME_CONFIG.PRIZE_DISTRIBUTION[2] * 100}%、第 4 名 {GAME_CONFIG.PRIZE_DISTRIBUTION[3] * 100}%...</p>
+              </div>
             </div>
           </motion.div>
         )}

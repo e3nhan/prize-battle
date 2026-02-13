@@ -127,15 +127,16 @@ export default function BettingRound() {
 
   const handlePlaceBet = () => {
     if (!selectedOption || hasPlacedBet) return;
-    // group_predict: optionId = predict_N, choiceId = choice_A/B
+    // group_predict: 固定下注 minBet（UI 無 slider），optionId = predict_N, choiceId = choice_A/B
+    const amount = isGroupPredict ? minBet : betAmount;
     const payload = isGroupPredict && selectedChoice
-      ? { optionId: selectedOption, amount: betAmount, choiceId: selectedChoice }
-      : { optionId: selectedOption, amount: betAmount };
+      ? { optionId: selectedOption, amount, choiceId: selectedChoice }
+      : { optionId: selectedOption, amount };
     getSocket().emit('placeBet', payload);
     setHasPlacedBet(true);
     setMyBetInfo(isGroupPredict && selectedChoice
-      ? { optionId: selectedOption, choiceId: selectedChoice, amount: betAmount }
-      : { optionId: selectedOption, amount: betAmount });
+      ? { optionId: selectedOption, choiceId: selectedChoice, amount }
+      : { optionId: selectedOption, amount });
     if (navigator.vibrate) navigator.vibrate(50);
   };
 

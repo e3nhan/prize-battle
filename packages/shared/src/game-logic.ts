@@ -68,9 +68,9 @@ export function spinRoulette(): { winningOptionId: string; animationData: Roulet
 // ===== 硬幣翻倍 =====
 export function getCoinMultiplyOptions(): BetOption[] {
   return [
-    { id: 'coin_1', label: '挑戰 1 次 (2x)', odds: 1.0, description: '猜對 1 次，賠率 2 倍' },
-    { id: 'coin_2', label: '挑戰 2 次 (4x)', odds: 3.0, description: '連續猜對 2 次，賠率 4 倍' },
-    { id: 'coin_3', label: '挑戰 3 次 (8x)', odds: 7.0, description: '連續猜對 3 次，賠率 8 倍' },
+    { id: 'coin_1', label: '挑戰 1 枚', odds: 0, description: '第 1 枚正面即贏，瓜分比重 2x' },
+    { id: 'coin_2', label: '挑戰 2 枚', odds: 0, description: '前 2 枚皆正面才贏，瓜分比重 4x' },
+    { id: 'coin_3', label: '挑戰 3 枚', odds: 0, description: '3 枚皆正面才贏，瓜分比重 8x' },
   ];
 }
 
@@ -347,16 +347,16 @@ export function getBetTypeTitle(type: BetType): string {
 export function getBetTypeDescription(type: BetType): string {
   switch (type) {
     case 'dice_high_low':
-      return '3顆骰子，猜總和大（11-18）或小（3-10）。豹子出現則所有人輸。';
+      return '3 顆骰子，猜總和大（11-18）或小（3-10）。所有下注匯入獎池，猜對的人瓜分全部獎池。豹子出現則全額退回。';
     case 'roulette':
-      return '8格轉盤，選擇顏色下注。各顏色賠率不同，格越小賠率越高。';
+      return '8 格轉盤，選一格下注。所有下注匯入獎池，猜中的人瓜分全部獎池。押冷門贏了賺更多！';
     case 'coin_multiply':
-      return '選擇投擲硬幣次數（1/2/3次），全部正面才算贏。次數越多倍率越高，但風險也越大。';
+      return '丟 3 枚硬幣，選擇挑戰次數：1 次只看第 1 枚、2 次看前 2 枚、3 次看全部。必須全部正面才算贏，次數越多瓜分獎池的比重越高。';
     case 'mystery_pick':
-      return '5個神秘寶盒，各藏不同倍率（0x～3x）。選一個賭運氣！';
+      return '5 個神秘寶盒藏有不同倍率（0x～3x）。選同一盒的人共享該倍率，選到炸彈（0x）則血本無歸！';
     case 'dice_exact':
-      return '2顆骰子，可猜確切點數（賠率高）或範圍（低/中/高）。猜越準，賠率越高。';
+      return '2 顆骰子，猜確切點數或範圍（2-5/6-8/9-12）。所有下注匯入獎池，猜中的人按賠率權重瓜分。點數越難猜，分到的比例越高。';
     case 'group_predict':
-      return '選A或B，再預測總共有幾人選A。預測人數最接近的平分獎池。';
+      return '每人先選 A 或 B 陣營，再預測總共有幾人選 A。預測最接近的前 3 名（誤差 ≤2）瓜分獎池！';
   }
 }

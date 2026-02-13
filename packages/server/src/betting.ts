@@ -259,9 +259,9 @@ function resolveDiceExactBet(state: BettingState, players: Player[]): BetResult 
 }
 
 function resolveGroupPredictBet(state: BettingState, players: Player[]): BetResult {
-  const betsForPredict: Record<string, { optionId: string; amount: number }> = {};
+  const betsForPredict: Record<string, { optionId: string; choiceId?: string; amount: number }> = {};
   for (const [pid, bet] of Object.entries(state.playerBets)) {
-    betsForPredict[pid] = { optionId: bet.optionId, amount: bet.amount };
+    betsForPredict[pid] = { optionId: bet.optionId, choiceId: bet.choiceId, amount: bet.amount };
   }
 
   const { animationData, bonusPlayers } = resolveGroupPredict(betsForPredict, players.length);
