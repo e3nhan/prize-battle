@@ -149,20 +149,24 @@ function resolvePoolBetting(
 }
 
 export function resolveBetting(state: BettingState, players: Player[]): BetResult {
+  let result: BetResult;
   switch (state.type) {
     case 'dice_high_low':
-      return resolveDiceHighLowBet(state, players);
+      result = resolveDiceHighLowBet(state, players); break;
     case 'roulette':
-      return resolveRouletteBet(state, players);
+      result = resolveRouletteBet(state, players); break;
     case 'coin_multiply':
-      return resolveCoinMultiplyBet(state, players);
+      result = resolveCoinMultiplyBet(state, players); break;
     case 'mystery_pick':
-      return resolveMysteryPickBet(state, players);
+      result = resolveMysteryPickBet(state, players); break;
     case 'dice_exact':
-      return resolveDiceExactBet(state, players);
+      result = resolveDiceExactBet(state, players); break;
     case 'group_predict':
-      return resolveGroupPredictBet(state, players);
+      result = resolveGroupPredictBet(state, players); break;
   }
+  // 附上每個人的下注資訊，供 display 結果畫面顯示
+  result.playerBets = { ...state.playerBets };
+  return result;
 }
 
 function resolveDiceHighLowBet(state: BettingState, players: Player[]): BetResult {

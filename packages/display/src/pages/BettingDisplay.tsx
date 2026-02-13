@@ -115,6 +115,10 @@ export default function BettingDisplay() {
                   const hasBet = confirmedBets.has(player.id);
                   const noWinnerRefund = hasBet && !hasAnyWinner;
 
+                  const bet = bettingResult.playerBets?.[player.id];
+                  const betOption = bet ? bettingState.options.find((o) => o.id === bet.optionId) : null;
+                  const choiceOption = bet?.choiceId ? bettingState.options.find((o) => o.id === bet.choiceId) : null;
+
                   return (
                     <motion.div
                       key={player.id}
@@ -130,6 +134,15 @@ export default function BettingDisplay() {
                     >
                       <span className="text-2xl">{player.avatar}</span>
                       <p className="font-bold text-sm mt-1">{player.name}</p>
+                      {bet ? (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {choiceOption ? `${choiceOption.label} · ` : ''}
+                          {betOption?.label ?? bet.optionId}
+                          {bet.amount > 0 && !choiceOption ? ` · 🪙${bet.amount}` : ''}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-1">棄權</p>
+                      )}
                       <p className={`text-lg font-bold mt-1 ${
                         result.payout > 0 ? 'text-neon-green' :
                         result.payout < 0 ? 'text-accent' : 'text-gray-400'

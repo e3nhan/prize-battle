@@ -120,6 +120,7 @@ export interface BetResult {
     payout: number;
     newChips: number;
   }>;
+  playerBets?: Record<string, PlayerBet>;
 }
 
 export interface DiceAnimationData {
