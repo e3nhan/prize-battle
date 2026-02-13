@@ -19,6 +19,12 @@ type AppMode = 'home' | 'game' | 'calculator' | 'scratch';
 function hashToMode(): AppMode {
   const hash = window.location.hash.replace('#/', '').replace('#', '');
   if (hash === 'game' || hash === 'calculator' || hash === 'scratch') return hash;
+  // 重整後 hash 可能遺失，從 sessionStorage 恢復
+  const saved = sessionStorage.getItem('appMode');
+  if (saved === 'game' || saved === 'calculator') {
+    window.location.hash = `#/${saved}`;
+    return saved;
+  }
   return 'home';
 }
 
@@ -105,6 +111,7 @@ export default function App() {
 
   const handleBack = useCallback(() => {
     sessionStorage.removeItem('playerName');
+    sessionStorage.removeItem('appMode');
     window.location.hash = '';
   }, []);
 

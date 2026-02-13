@@ -19,6 +19,7 @@ export default function JoinRoom({ onBack }: { onBack: () => void }) {
     setPlayerId(socket.id!);
     setPlayerName(name.trim());
     sessionStorage.setItem('playerName', name.trim());
+    sessionStorage.setItem('appMode', 'game');
     socket.emit('quickJoin', name.trim(), buyIn);
   };
 
