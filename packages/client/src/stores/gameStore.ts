@@ -33,6 +33,8 @@ interface GameStore {
   bettingResult: BetResult | null;
   confirmedBets: Set<string>;
   hasPlacedBet: boolean;
+  confirmedRoundReady: Set<string>;
+  hasConfirmedRound: boolean;
 
   // Auction
   auctionState: AuctionState | null;
@@ -57,6 +59,8 @@ interface GameStore {
   setBettingResult: (result: BetResult) => void;
   addConfirmedBet: (playerId: string) => void;
   setHasPlacedBet: (value: boolean) => void;
+  addConfirmedRoundReady: (playerId: string) => void;
+  setHasConfirmedRound: (value: boolean) => void;
   setAuctionState: (state: AuctionState) => void;
   setAuctionResult: (result: AuctionResult) => void;
   addConfirmedBid: (playerId: string) => void;
@@ -79,6 +83,8 @@ export const useGameStore = create<GameStore>((set) => ({
   bettingResult: null,
   confirmedBets: new Set(),
   hasPlacedBet: false,
+  confirmedRoundReady: new Set(),
+  hasConfirmedRound: false,
   auctionState: null,
   auctionResult: null,
   confirmedBids: new Set(),
@@ -114,6 +120,11 @@ export const useGameStore = create<GameStore>((set) => ({
     if (phase === 'final_result') {
       newState.screen = 'result';
     }
+    // 每輪 briefing 開始時重置準備狀態
+    if (phase === 'betting_briefing' || phase === 'auction_briefing') {
+      newState.confirmedRoundReady = new Set();
+      newState.hasConfirmedRound = false;
+    }
     // Reset bet/bid state when new round starts
     if (phase === 'betting_round') {
       newState.hasPlacedBet = false;
@@ -148,6 +159,13 @@ export const useGameStore = create<GameStore>((set) => ({
 
   setHasPlacedBet: (value) => set({ hasPlacedBet: value }),
 
+  addConfirmedRoundReady: (playerId) => set((state) => {
+    const newSet = new Set(state.confirmedRoundReady);
+    newSet.add(playerId);
+    return { confirmedRoundReady: newSet };
+  }),
+  setHasConfirmedRound: (value) => set({ hasConfirmedRound: value }),
+
   setAuctionState: (auctionState) => set({
     auctionState,
     auctionResult: null,
@@ -179,6 +197,8 @@ export const useGameStore = create<GameStore>((set) => ({
     bettingResult: null,
     confirmedBets: new Set(),
     hasPlacedBet: false,
+    confirmedRoundReady: new Set(),
+    hasConfirmedRound: false,
     auctionState: null,
     auctionResult: null,
     confirmedBids: new Set(),

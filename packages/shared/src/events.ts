@@ -23,6 +23,7 @@ export interface ServerToClientEvents {
   // 押注
   bettingRoundStart: (state: BettingState) => void;
   playerBetConfirmed: (playerId: string) => void;
+  playerRoundReady: (playerId: string) => void;
   bettingResult: (result: BetResult) => void;
 
   // 拍賣
@@ -52,6 +53,9 @@ export interface ClientToServerEvents {
   // 電腦玩家
   addBots: (count: number) => void;
   removeBots: () => void;
+
+  // 每輪準備
+  roundReady: () => void;
 
   // 重新開始
   playAgain: () => void;

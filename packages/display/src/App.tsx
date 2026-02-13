@@ -25,6 +25,7 @@ export default function App() {
 
   if (
     phase === 'betting_intro' ||
+    phase === 'betting_briefing' ||
     phase === 'betting_round' ||
     phase === 'betting_reveal' ||
     phase === 'betting_result'
@@ -34,6 +35,7 @@ export default function App() {
 
   if (
     phase === 'auction_intro' ||
+    phase === 'auction_briefing' ||
     phase === 'auction_round' ||
     phase === 'auction_reveal' ||
     phase === 'auction_result'

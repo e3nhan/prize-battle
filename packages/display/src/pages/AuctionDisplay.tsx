@@ -11,9 +11,48 @@ export default function AuctionDisplay() {
   const auctionState = useDisplayStore((s) => s.auctionState);
   const auctionResult = useDisplayStore((s) => s.auctionResult);
   const confirmedBids = useDisplayStore((s) => s.confirmedBids);
+  const confirmedRoundReady = useDisplayStore((s) => s.confirmedRoundReady);
   const timeLeft = useDisplayStore((s) => s.timeLeft);
 
   if (!room || !auctionState) return null;
+
+  // Briefing：每箱拍賣前說明，等玩家確認
+  if (phase === 'auction_briefing') {
+    const readyCount = confirmedRoundReady.size;
+    const totalPlayers = room.players.filter((p) => p.isConnected).length;
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-2xl w-full space-y-6"
+        >
+          <p className="text-gray-400 text-xl">
+            寶箱 {auctionState.roundNumber} / {GAME_CONFIG.TOTAL_AUCTION_ITEMS}
+          </p>
+          <p className="text-[80px] leading-none">📦</p>
+          <h2 className="text-5xl font-black text-gold glow-text-gold">
+            {auctionState.currentBox.displayName}
+          </h2>
+          <div className="bg-secondary/80 rounded-2xl p-6 border border-gray-700 space-y-3">
+            <p className="text-2xl text-gray-300 italic">「{auctionState.currentBox.hint}」</p>
+            <p className="text-gray-500 text-lg">⚠️ 提示可能為誤導 · 最低出價 🪙{GAME_CONFIG.MIN_BID}</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 text-2xl">
+            <span className="text-neon-green font-bold">{readyCount}</span>
+            <span className="text-gray-500">/</span>
+            <span className="text-gray-400">{totalPlayers}</span>
+            <span className="text-gray-400">人已準備</span>
+          </div>
+          <PlayerList
+            players={room.players}
+            confirmedActions={confirmedRoundReady}
+            showChips
+          />
+        </motion.div>
+      </div>
+    );
+  }
 
   // Intro
   if (phase === 'auction_intro') {

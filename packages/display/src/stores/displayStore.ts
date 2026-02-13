@@ -20,6 +20,7 @@ interface DisplayStore {
   bettingState: BettingState | null;
   bettingResult: BetResult | null;
   confirmedBets: Set<string>;
+  confirmedRoundReady: Set<string>;
 
   auctionState: AuctionState | null;
   auctionResult: AuctionResult | null;
@@ -35,6 +36,7 @@ interface DisplayStore {
   setBettingState: (state: BettingState) => void;
   setBettingResult: (result: BetResult) => void;
   addConfirmedBet: (playerId: string) => void;
+  addConfirmedRoundReady: (playerId: string) => void;
   setAuctionState: (state: AuctionState) => void;
   setAuctionResult: (result: AuctionResult) => void;
   addConfirmedBid: (playerId: string) => void;
@@ -50,6 +52,7 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
   bettingState: null,
   bettingResult: null,
   confirmedBets: new Set(),
+  confirmedRoundReady: new Set(),
   auctionState: null,
   auctionResult: null,
   confirmedBids: new Set(),
@@ -78,6 +81,9 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
   })),
   setPhase: (phase) => set((s) => {
     const updates: Partial<DisplayStore> = { phase };
+    if (phase === 'betting_briefing' || phase === 'auction_briefing') {
+      updates.confirmedRoundReady = new Set();
+    }
     if (phase === 'betting_round') {
       updates.confirmedBets = new Set();
       updates.bettingResult = null;
@@ -100,6 +106,11 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
     const newSet = new Set(s.confirmedBets);
     newSet.add(playerId);
     return { confirmedBets: newSet };
+  }),
+  addConfirmedRoundReady: (playerId) => set((s) => {
+    const newSet = new Set(s.confirmedRoundReady);
+    newSet.add(playerId);
+    return { confirmedRoundReady: newSet };
   }),
   setAuctionState: (state) => set({
     auctionState: state,

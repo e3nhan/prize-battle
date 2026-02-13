@@ -24,6 +24,8 @@ interface ActiveGame {
   auctionBoxes: AuctionBox[];
   playerShields: Set<string>;
   timerInterval: ReturnType<typeof setInterval> | null;
+  roundReadyPlayers: Set<string>;
+  roundReadyTimeout: ReturnType<typeof setTimeout> | null;
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -48,6 +50,8 @@ export function startGame(io: TypedServer, room: Room): void {
     auctionBoxes: createAuctionBoxes(),
     playerShields: new Set(),
     timerInterval: null,
+    roundReadyPlayers: new Set(),
+    roundReadyTimeout: null,
   };
 
   activeGames.set(room.id, activeGame);
@@ -83,7 +87,6 @@ function startNextBettingRound(io: TypedServer, roomId: string): void {
 
   gs.currentRound++;
   if (gs.currentRound > GAME_CONFIG.TOTAL_BETTING_ROUNDS) {
-    // Move to auction phase
     startAuctionPhase(io, roomId);
     return;
   }
@@ -91,16 +94,35 @@ function startNextBettingRound(io: TypedServer, roomId: string): void {
   const betType = GAME_CONFIG.BETTING_ROUNDS[gs.currentRound - 1];
   const bettingState = createBettingState(betType, gs.currentRound, room.players);
   gs.bettingState = bettingState;
-  gs.phase = 'betting_round';
+  gs.phase = 'betting_briefing';
 
-  emitPhaseChange(io, roomId, 'betting_round');
+  // 先送資料，再改 phase（確保 client 收到資料時 bettingState 已設好）
   io.to(roomId).emit('bettingRoundStart', bettingState);
   io.to(`display_${roomId}`).emit('bettingRoundStart', bettingState);
+  emitPhaseChange(io, roomId, 'betting_briefing');
 
-  // Schedule bot actions
+  // 重置準備狀態，bots 自動準備
+  game.roundReadyPlayers = new Set();
+  if (game.roundReadyTimeout) clearTimeout(game.roundReadyTimeout);
+  scheduleAutoReadyForBots(io, roomId);
+
+  // 60 秒 fallback：所有人不按也強制開始
+  game.roundReadyTimeout = setTimeout(() => startBettingRound(io, roomId), 60000);
+}
+
+function startBettingRound(io: TypedServer, roomId: string): void {
+  const game = activeGames.get(roomId);
+  if (!game) return;
+
+  if (game.roundReadyTimeout) {
+    clearTimeout(game.roundReadyTimeout);
+    game.roundReadyTimeout = null;
+  }
+
+  const gs = game.room.gameState!;
+  gs.phase = 'betting_round';
+  emitPhaseChange(io, roomId, 'betting_round');
   scheduleBotBets(io, roomId);
-
-  // Start countdown
   startTimer(io, roomId, GAME_CONFIG.BETTING_TIME, () => {
     resolveBettingRound(io, roomId);
   });
@@ -162,7 +184,6 @@ function startNextAuctionRound(io: TypedServer, roomId: string): void {
 
   gs.currentRound++;
   if (gs.currentRound > GAME_CONFIG.TOTAL_AUCTION_ITEMS) {
-    // Game over
     showFinalResults(io, roomId);
     return;
   }
@@ -173,19 +194,49 @@ function startNextAuctionRound(io: TypedServer, roomId: string): void {
 
   const auctionState = createAuctionState(gs.currentRound, box, remaining);
   gs.auctionState = auctionState;
-  gs.phase = 'auction_round';
+  gs.phase = 'auction_briefing';
 
-  emitPhaseChange(io, roomId, 'auction_round');
+  // 先送資料，再改 phase
   io.to(roomId).emit('auctionRoundStart', auctionState);
   io.to(`display_${roomId}`).emit('auctionRoundStart', auctionState);
+  emitPhaseChange(io, roomId, 'auction_briefing');
 
-  // Schedule bot actions
+  // 重置準備狀態，bots 自動準備
+  game.roundReadyPlayers = new Set();
+  if (game.roundReadyTimeout) clearTimeout(game.roundReadyTimeout);
+  scheduleAutoReadyForBots(io, roomId);
+
+  // 60 秒 fallback
+  game.roundReadyTimeout = setTimeout(() => startAuctionRound(io, roomId), 60000);
+}
+
+function startAuctionRound(io: TypedServer, roomId: string): void {
+  const game = activeGames.get(roomId);
+  if (!game) return;
+
+  if (game.roundReadyTimeout) {
+    clearTimeout(game.roundReadyTimeout);
+    game.roundReadyTimeout = null;
+  }
+
+  const gs = game.room.gameState!;
+  gs.phase = 'auction_round';
+  emitPhaseChange(io, roomId, 'auction_round');
   scheduleBotBids(io, roomId);
-
-  // Start countdown
   startTimer(io, roomId, GAME_CONFIG.AUCTION_TIME, () => {
     resolveAuctionRound(io, roomId);
   });
+}
+
+function scheduleAutoReadyForBots(io: TypedServer, roomId: string): void {
+  const game = activeGames.get(roomId);
+  if (!game) return;
+  const bots = game.room.players.filter((p: Player) => p.id.startsWith('bot_') && p.isConnected);
+  for (const bot of bots) {
+    setTimeout(() => {
+      handleRoundReady(io, roomId, bot.id);
+    }, 800 + Math.random() * 1200);
+  }
 }
 
 function resolveAuctionRound(io: TypedServer, roomId: string): void {
@@ -350,10 +401,42 @@ export function handleSubmitBid(
   return success;
 }
 
+export function handleRoundReady(io: TypedServer, roomId: string, playerId: string): void {
+  const game = activeGames.get(roomId);
+  if (!game) return;
+
+  const { room } = game;
+  const gs = room.gameState;
+  if (!gs) return;
+  if (gs.phase !== 'betting_briefing' && gs.phase !== 'auction_briefing') return;
+  if (game.roundReadyPlayers.has(playerId)) return;
+
+  game.roundReadyPlayers.add(playerId);
+  io.to(roomId).emit('playerRoundReady', playerId);
+  io.to(`display_${roomId}`).emit('playerRoundReady', playerId);
+
+  // 所有連線玩家都準備好 → 開始
+  const allReady = room.players
+    .filter((p: Player) => p.isConnected)
+    .every((p: Player) => game.roundReadyPlayers.has(p.id));
+
+  if (allReady) {
+    if (gs.phase === 'betting_briefing') {
+      startBettingRound(io, roomId);
+    } else {
+      startAuctionRound(io, roomId);
+    }
+  }
+}
+
 export function handlePlayAgain(io: TypedServer, roomId: string): void {
   const game = activeGames.get(roomId);
   if (!game) return;
 
   clearTimer(roomId);
+  if (game.roundReadyTimeout) {
+    clearTimeout(game.roundReadyTimeout);
+    game.roundReadyTimeout = null;
+  }
   activeGames.delete(roomId);
 }

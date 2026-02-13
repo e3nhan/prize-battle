@@ -17,6 +17,9 @@ export default function AuctionRound() {
   const hasSubmittedBid = useGameStore((s) => s.hasSubmittedBid);
   const setHasSubmittedBid = useGameStore((s) => s.setHasSubmittedBid);
   const confirmedBids = useGameStore((s) => s.confirmedBids);
+  const confirmedRoundReady = useGameStore((s) => s.confirmedRoundReady);
+  const hasConfirmedRound = useGameStore((s) => s.hasConfirmedRound);
+  const setHasConfirmedRound = useGameStore((s) => s.setHasConfirmedRound);
 
   const me = room?.players.find((p) => p.id === playerId);
   const myChips = me?.chips ?? 0;
@@ -39,6 +42,55 @@ export default function AuctionRound() {
     setHasSubmittedBid(true);
     if (navigator.vibrate) navigator.vibrate(50);
   };
+
+  // Briefing：每箱拍賣前說明，等所有玩家確認
+  if (phase === 'auction_briefing') {
+    const readyCount = confirmedRoundReady.size;
+    const handleReady = () => {
+      if (hasConfirmedRound) return;
+      getSocket().emit('roundReady');
+      setHasConfirmedRound(true);
+      if (navigator.vibrate) navigator.vibrate(50);
+    };
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm text-center space-y-4"
+        >
+          <p className="text-sm text-gray-500">
+            寶箱 {auctionState.roundNumber} / {GAME_CONFIG.TOTAL_AUCTION_ITEMS}
+          </p>
+          <p className="text-5xl">📦</p>
+          <h2 className="text-2xl font-black text-gold">{auctionState.currentBox.displayName}</h2>
+          <div className="bg-secondary rounded-xl p-4 border border-gray-700 text-left space-y-2">
+            <p className="text-gray-300 italic">「{auctionState.currentBox.hint}」</p>
+            <p className="text-xs text-gray-500">⚠️ 提示可能為誤導</p>
+          </div>
+          <p className="text-sm text-gray-400">最低出價：🪙{GAME_CONFIG.MIN_BID}</p>
+          <ChipDisplay amount={myChips} size="sm" />
+
+          {hasConfirmedRound ? (
+            <div className="text-center">
+              <p className="text-xl font-bold text-neon-green">✅ 已準備</p>
+              <p className="text-gray-400 text-sm mt-1">等待其他玩家... ({readyCount}/{totalPlayers})</p>
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleReady}
+              className="w-full py-4 rounded-xl text-xl font-bold
+                bg-gradient-to-r from-gold/80 to-yellow-600 text-primary
+                active:scale-95 glow-gold"
+            >
+              準備出價！
+            </motion.button>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
 
   // Intro
   if (phase === 'auction_intro') {

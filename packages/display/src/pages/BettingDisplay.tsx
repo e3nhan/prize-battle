@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useDisplayStore } from '../stores/displayStore';
-import { getBetTypeTitle, GAME_CONFIG } from '@prize-battle/shared';
+import { getBetTypeTitle, getBetTypeDescription, GAME_CONFIG } from '@prize-battle/shared';
 import type { DiceAnimationData, RouletteAnimationData, CoinAnimationData, MysteryAnimationData, GroupPredictAnimationData } from '@prize-battle/shared';
 import PlayerList from '../components/PlayerList';
 import DiceAnimation from '../components/DiceAnimation';
@@ -12,6 +12,7 @@ export default function BettingDisplay() {
   const bettingState = useDisplayStore((s) => s.bettingState);
   const bettingResult = useDisplayStore((s) => s.bettingResult);
   const confirmedBets = useDisplayStore((s) => s.confirmedBets);
+  const confirmedRoundReady = useDisplayStore((s) => s.confirmedRoundReady);
   const timeLeft = useDisplayStore((s) => s.timeLeft);
 
   if (!room) return null;
@@ -29,6 +30,42 @@ export default function BettingDisplay() {
           <p className="text-[100px]">🎰</p>
           <h1 className="text-6xl font-black text-gold glow-text-gold mt-4">押注預測</h1>
           <p className="text-2xl text-gray-400 mt-4">共 {GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪，測試你的運氣！</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Briefing：每輪開始說明規則，等玩家確認
+  if (phase === 'betting_briefing' && bettingState) {
+    const readyCount = confirmedRoundReady.size;
+    const totalPlayers = room.players.filter((p) => p.isConnected).length;
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-2xl w-full space-y-6"
+        >
+          <p className="text-gray-400 text-xl">
+            第 {bettingState.roundNumber} / {GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪
+          </p>
+          <h2 className="text-5xl font-black text-gold glow-text-gold">
+            {getBetTypeTitle(bettingState.type)}
+          </h2>
+          <p className="text-2xl text-gray-300 bg-secondary/80 rounded-2xl p-6 border border-gray-700 leading-relaxed">
+            {getBetTypeDescription(bettingState.type)}
+          </p>
+          <div className="flex items-center justify-center gap-3 text-2xl">
+            <span className="text-neon-green font-bold">{readyCount}</span>
+            <span className="text-gray-500">/</span>
+            <span className="text-gray-400">{totalPlayers}</span>
+            <span className="text-gray-400">人已準備</span>
+          </div>
+          <PlayerList
+            players={room.players}
+            confirmedActions={confirmedRoundReady}
+            showChips
+          />
         </motion.div>
       </div>
     );

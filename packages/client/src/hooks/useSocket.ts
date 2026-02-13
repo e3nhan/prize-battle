@@ -59,6 +59,10 @@ export function useSocket(): TypedSocket {
       store.addConfirmedBet(playerId);
     });
 
+    s.on('playerRoundReady', (playerId) => {
+      store.addConfirmedRoundReady(playerId);
+    });
+
     s.on('bettingResult', (result) => {
       store.setBettingResult(result);
     });
@@ -88,6 +92,7 @@ export function useSocket(): TypedSocket {
       s.off('countdownStart');
       s.off('bettingRoundStart');
       s.off('playerBetConfirmed');
+      s.off('playerRoundReady');
       s.off('bettingResult');
       s.off('auctionRoundStart');
       s.off('playerBidConfirmed');

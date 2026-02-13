@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
-import { getBetTypeTitle, getMinBet } from '@prize-battle/shared';
+import { getBetTypeTitle, getBetTypeDescription, getMinBet } from '@prize-battle/shared';
 import Timer from '../components/Timer';
 import ChipDisplay from '../components/ChipDisplay';
 import BetSlider from '../components/BetSlider';
@@ -18,6 +18,9 @@ export default function BettingRound() {
   const hasPlacedBet = useGameStore((s) => s.hasPlacedBet);
   const setHasPlacedBet = useGameStore((s) => s.setHasPlacedBet);
   const confirmedBets = useGameStore((s) => s.confirmedBets);
+  const confirmedRoundReady = useGameStore((s) => s.confirmedRoundReady);
+  const hasConfirmedRound = useGameStore((s) => s.hasConfirmedRound);
+  const setHasConfirmedRound = useGameStore((s) => s.setHasConfirmedRound);
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null); // group_predict A/B
@@ -35,6 +38,7 @@ export default function BettingRound() {
   const me = room.players.find((p) => p.id === playerId);
   const myChips = me?.chips ?? 0;
   const minBet = getMinBet(myChips);
+  const totalPlayers = room.players.filter((p) => p.isConnected).length;
 
   const handlePlaceBet = () => {
     if (!selectedOption || hasPlacedBet) return;
@@ -61,6 +65,50 @@ export default function BettingRound() {
           <p className="text-6xl mb-4">🎰</p>
           <h2 className="text-3xl font-black text-gold mb-2">押注預測</h2>
           <p className="text-gray-400">共 {GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪，考驗你的運氣和判斷！</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Briefing：每輪開始說明規則，等所有玩家確認
+  if (phase === 'betting_briefing') {
+    const readyCount = confirmedRoundReady.size;
+    const handleReady = () => {
+      if (hasConfirmedRound) return;
+      getSocket().emit('roundReady');
+      setHasConfirmedRound(true);
+      if (navigator.vibrate) navigator.vibrate(50);
+    };
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm text-center space-y-4"
+        >
+          <p className="text-sm text-gray-500">第 {bettingState.roundNumber} / {GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪</p>
+          <h2 className="text-2xl font-black text-gold">{getBetTypeTitle(bettingState.type)}</h2>
+          <p className="text-gray-300 text-base leading-relaxed bg-secondary rounded-xl p-4 border border-gray-700">
+            {getBetTypeDescription(bettingState.type)}
+          </p>
+          <ChipDisplay amount={myChips} size="sm" />
+
+          {hasConfirmedRound ? (
+            <div className="text-center">
+              <p className="text-xl font-bold text-neon-green">✅ 已準備</p>
+              <p className="text-gray-400 text-sm mt-1">等待其他玩家... ({readyCount}/{totalPlayers})</p>
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleReady}
+              className="w-full py-4 rounded-xl text-xl font-bold
+                bg-gradient-to-r from-gold/80 to-yellow-600 text-primary
+                active:scale-95 glow-gold"
+            >
+              準備好了！
+            </motion.button>
+          )}
         </motion.div>
       </div>
     );
@@ -129,7 +177,6 @@ export default function BettingRound() {
     : !!selectedOption;
 
   const confirmedCount = confirmedBets.size;
-  const totalPlayers = room.players.filter((p) => p.isConnected).length;
 
   return (
     <div className="h-full flex flex-col p-4">

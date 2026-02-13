@@ -23,6 +23,7 @@ import {
   handlePlaceBet,
   handleSubmitBid,
   handlePlayAgain,
+  handleRoundReady,
 } from './game-engine.js';
 import { addBots, removeBots, autoReadyBots } from './bot.js';
 
@@ -132,6 +133,13 @@ io.on('connection', (socket) => {
     if (!success) {
       socket.emit('error', '下注失敗');
     }
+  });
+
+  // 每輪準備確認
+  socket.on('roundReady', () => {
+    const roomId = getPlayerRoomId(socket.id);
+    if (!roomId) return;
+    handleRoundReady(io, roomId, socket.id);
   });
 
   // Auction

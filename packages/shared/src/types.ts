@@ -34,10 +34,12 @@ export interface GameState {
 
 export type GamePhase =
   | 'betting_intro'
+  | 'betting_briefing'
   | 'betting_round'
   | 'betting_reveal'
   | 'betting_result'
   | 'auction_intro'
+  | 'auction_briefing'
   | 'auction_round'
   | 'auction_reveal'
   | 'auction_result'
