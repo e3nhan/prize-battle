@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
-import { getBetTypeTitle, getBetTypeDescription, getMinBet } from '@prize-battle/shared';
+import { getBetTypeTitle, getBetTypeDescription } from '@prize-battle/shared';
 import type { MysteryAnimationData } from '@prize-battle/shared';
 import Timer from '../components/Timer';
 import ChipDisplay from '../components/ChipDisplay';
@@ -77,6 +77,13 @@ export default function BettingRound() {
               {getBetTypeDescription(bettingState.type)}
             </p>
           )}
+          {/* 輪次事件公告 */}
+          {bettingState?.roundEvent && (
+            <div className="w-full p-4 rounded-xl border-2 border-yellow-500/50 bg-yellow-500/10 text-center">
+              <p className="text-xl font-black text-yellow-400">{bettingState.roundEvent.label}</p>
+              <p className="text-sm text-gray-300 mt-1">{bettingState.roundEvent.description}</p>
+            </div>
+          )}
           {/* 選項預覽 */}
           {bettingState && bettingState.options.filter((o) => !o.id.startsWith('predict_')).length > 0 && (
             <div className="w-full bg-primary/50 rounded-xl p-3 border border-gray-700">
@@ -122,7 +129,7 @@ export default function BettingRound() {
   const isGroupPredict = bettingState.type === 'group_predict';
   const me = room.players.find((p) => p.id === playerId);
   const myChips = me?.chips ?? 0;
-  const minBet = getMinBet(myChips);
+  const minBet = Math.ceil(myChips * (bettingState.minBetRatio ?? GAME_CONFIG.MIN_BET_RATIO));
   const totalPlayers = room.players.filter((p) => p.isConnected).length;
 
   const handlePlaceBet = () => {
@@ -291,6 +298,15 @@ export default function BettingRound() {
         </h2>
         <ChipDisplay amount={myChips} size="sm" />
       </div>
+
+      {/* 輪次事件提示 */}
+      {bettingState.roundEvent && (
+        <div className="mb-2 px-3 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-center">
+          <p className="text-sm font-bold text-yellow-400">
+            {bettingState.roundEvent.label} — {bettingState.roundEvent.description}
+          </p>
+        </div>
+      )}
 
       {/* Timer */}
       <Timer seconds={timeLeft} total={GAME_CONFIG.BETTING_TIME} />

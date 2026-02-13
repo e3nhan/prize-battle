@@ -9,6 +9,7 @@ import type {
 } from '@prize-battle/shared';
 import {
   GAME_CONFIG,
+  ROUND_EVENTS,
   calculateLeaderboard,
   getMinBet,
 } from '@prize-battle/shared';
@@ -93,6 +94,17 @@ function startNextBettingRound(io: TypedServer, roomId: string): void {
 
   const betType = GAME_CONFIG.BETTING_ROUNDS[gs.currentRound - 1];
   const bettingState = createBettingState(betType, gs.currentRound, room.players);
+
+  // 隨機觸發輪次事件（15% 機率）
+  if (Math.random() < ROUND_EVENTS.TRIGGER_RATE) {
+    const events = ROUND_EVENTS.EVENTS;
+    const event = events[Math.floor(Math.random() * events.length)];
+    bettingState.roundEvent = { type: event.type, label: event.label, description: event.description };
+    if (event.type === 'high_stakes') {
+      bettingState.minBetRatio = 0.3;
+    }
+  }
+
   gs.bettingState = bettingState;
   gs.phase = 'betting_briefing';
 

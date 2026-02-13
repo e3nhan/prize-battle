@@ -56,6 +56,17 @@ export default function BettingDisplay() {
           <p className="text-2xl text-gray-300 bg-secondary/80 rounded-2xl p-6 border border-gray-700 leading-relaxed">
             {getBetTypeDescription(bettingState.type)}
           </p>
+          {/* 輪次事件公告 */}
+          {bettingState.roundEvent && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-6 rounded-2xl border-2 border-yellow-500/60 bg-yellow-500/15 text-center"
+            >
+              <p className="text-4xl font-black text-yellow-400">{bettingState.roundEvent.label}</p>
+              <p className="text-xl text-gray-200 mt-2">{bettingState.roundEvent.description}</p>
+            </motion.div>
+          )}
           <div className="flex items-center justify-center gap-3 text-2xl">
             <span className="text-neon-green font-bold">{readyCount}</span>
             <span className="text-gray-500">/</span>

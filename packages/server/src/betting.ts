@@ -36,6 +36,7 @@ export function createBettingState(
     options: getBettingOptions(type, players.length),
     playerBets: {},
     result: null,
+    minBetRatio: GAME_CONFIG.MIN_BET_RATIO,
   };
 }
 
@@ -50,7 +51,8 @@ export function placeBet(
   if (state.playerBets[playerId]) return false;
   if (state.timeLeft <= 0) return false;
 
-  const minBet = getMinBet(playerChips);
+  const minBetRatio = state.minBetRatio ?? GAME_CONFIG.MIN_BET_RATIO;
+  const minBet = Math.ceil(playerChips * minBetRatio);
   if (amount < minBet || amount > playerChips) return false;
 
   const option = state.options.find((o: BetOption) => o.id === optionId);
@@ -171,9 +173,94 @@ export function resolveBetting(state: BettingState, players: Player[]): BetResul
     case 'group_predict':
       result = resolveGroupPredictBet(state, players); break;
   }
+  // 套用輪次事件效果
+  if (state.roundEvent) {
+    applyRoundEvent(state, players, result);
+  }
   // 附上每個人的下注資訊，供 display 結果畫面顯示
   result.playerBets = { ...state.playerBets };
   return result;
+}
+
+function applyRoundEvent(state: BettingState, players: Player[], result: BetResult): void {
+  const event = state.roundEvent!;
+  const bettorIds = Object.keys(state.playerBets);
+  if (bettorIds.length === 0) return;
+
+  switch (event.type) {
+    case 'golden_round': {
+      // 贏家額外再獲得一份 payout（系統注入，非零和）
+      for (const id of bettorIds) {
+        const r = result.playerResults[id];
+        if (!r || r.payout <= 0) continue;
+        const player = players.find((p: Player) => p.id === id);
+        if (!player) continue;
+        player.chips += r.payout;
+        result.playerResults[id] = { ...r, payout: r.payout * 2, newChips: player.chips };
+      }
+      break;
+    }
+
+    case 'high_stakes':
+      // 只影響下注門檻，解算邏輯不變
+      break;
+
+    case 'reverse': {
+      const winners = bettorIds.filter((id) => (result.playerResults[id]?.payout ?? 0) > 0);
+      const losers = bettorIds.filter((id) => (result.playerResults[id]?.payout ?? 0) < 0);
+      if (winners.length === 0 || losers.length === 0) break;
+
+      const pool = bettorIds.reduce((s, id) => s + state.playerBets[id].amount, 0);
+
+      // 撤銷原本的籌碼變動
+      for (const id of bettorIds) {
+        const player = players.find((p: Player) => p.id === id);
+        if (!player) continue;
+        player.chips -= (result.playerResults[id]?.payout ?? 0);
+      }
+      // 原贏家改為輸（扣下注金額）
+      for (const id of winners) {
+        const player = players.find((p: Player) => p.id === id)!;
+        const betAmount = state.playerBets[id].amount;
+        player.chips -= betAmount;
+        result.playerResults[id] = { won: false, payout: -betAmount, newChips: player.chips };
+      }
+      // 原輸家改為贏（平分彩池）
+      const loserShare = Math.floor(pool / losers.length);
+      for (let i = 0; i < losers.length; i++) {
+        const id = losers[i];
+        const player = players.find((p: Player) => p.id === id)!;
+        const betAmount = state.playerBets[id].amount;
+        const thisShare = i === losers.length - 1 ? pool - loserShare * (losers.length - 1) : loserShare;
+        const payout = thisShare - betAmount;
+        player.chips += payout;
+        result.playerResults[id] = { won: payout > 0, payout, newChips: player.chips };
+      }
+      break;
+    }
+
+    case 'equal_share': {
+      const pool = bettorIds.reduce((s, id) => s + state.playerBets[id].amount, 0);
+      // 撤銷原本的籌碼變動
+      for (const id of bettorIds) {
+        const player = players.find((p: Player) => p.id === id);
+        if (!player) continue;
+        player.chips -= (result.playerResults[id]?.payout ?? 0);
+      }
+      // 平均分配彩池
+      const share = Math.floor(pool / bettorIds.length);
+      for (let i = 0; i < bettorIds.length; i++) {
+        const id = bettorIds[i];
+        const player = players.find((p: Player) => p.id === id)!;
+        const betAmount = state.playerBets[id].amount;
+        const thisShare = i === bettorIds.length - 1 ? pool - share * (bettorIds.length - 1) : share;
+        const payout = thisShare - betAmount;
+        player.chips += payout;
+        result.playerResults[id] = { won: payout >= 0, payout, newChips: player.chips };
+      }
+      break;
+    }
+  }
 }
 
 function resolveDiceHighLowBet(state: BettingState, players: Player[]): BetResult {

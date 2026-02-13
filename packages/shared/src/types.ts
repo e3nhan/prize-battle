@@ -87,6 +87,15 @@ export type BetType =
   | 'mystery_pick'
   | 'group_predict';
 
+// ===== 輪次隨機事件 =====
+export type RoundEventType = 'golden_round' | 'high_stakes' | 'reverse' | 'equal_share';
+
+export interface RoundEvent {
+  type: RoundEventType;
+  label: string;
+  description: string;
+}
+
 export interface BettingState {
   type: BetType;
   roundNumber: number;
@@ -96,6 +105,8 @@ export interface BettingState {
   options: BetOption[];
   playerBets: Record<string, PlayerBet>;
   result: BetResult | null;
+  roundEvent?: RoundEvent;
+  minBetRatio: number;
 }
 
 export interface BetOption {

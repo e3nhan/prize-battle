@@ -1,4 +1,4 @@
-import type { BetType } from './types.js';
+import type { BetType, RoundEventType } from './types.js';
 
 export const GAME_CONFIG = {
   MAX_PLAYERS: 8,
@@ -40,6 +40,19 @@ export const GAME_CONFIG = {
   // 頭像池
   AVATARS: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐙', '🦄', '🐲', '🦅'],
 } as const;
+
+export const ROUND_EVENTS: {
+  TRIGGER_RATE: number;
+  EVENTS: Array<{ type: RoundEventType; label: string; description: string }>;
+} = {
+  TRIGGER_RATE: 0.15,
+  EVENTS: [
+    { type: 'golden_round', label: '💰 黃金輪', description: '本輪贏家獲得雙倍彩池！' },
+    { type: 'high_stakes',  label: '🔥 高壓輪', description: '本輪最低下注提高至 30%！' },
+    { type: 'reverse',      label: '🔄 逆轉輪', description: '本輪輸家和贏家互換！' },
+    { type: 'equal_share',  label: '⚖️ 平分輪', description: '不論結果，所有下注者平分彩池！' },
+  ],
+};
 
 export const ROOM_CODE_LENGTH = 6;
 export const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
