@@ -20,6 +20,7 @@ RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/packages/shared/dist packages/shared/dist
 COPY --from=build /app/packages/server/dist packages/server/dist
+COPY --from=build /app/packages/server/data packages/server/data
 COPY --from=build /app/packages/client/dist packages/client/dist
 COPY --from=build /app/packages/display/dist packages/display/dist
 

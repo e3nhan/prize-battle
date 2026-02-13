@@ -1,10 +1,11 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const DATA_FILE = join(__dirname, '../data/scratch-records.json');
+const DATA_DIR = join(__dirname, '../data');
+const DATA_FILE = join(DATA_DIR, 'scratch-records.json');
 
 export interface ScratchType {
   id: string;
@@ -38,6 +39,7 @@ function load(): ScratchData {
 }
 
 function save(data: ScratchData) {
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
