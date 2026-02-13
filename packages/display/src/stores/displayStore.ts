@@ -55,9 +55,15 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
   confirmedBids: new Set(),
   leaderboard: [],
 
-  setRoom: (room) => set({ room }),
+  setRoom: (room) => set((s) => {
+    // playAgain 後 status='waiting'：清掉遊戲狀態，讓 App 回到 WaitingScreen
+    if (room.status === 'waiting') {
+      return { room, phase: null, gameState: null, bettingState: null, auctionState: null };
+    }
+    return { room };
+  }),
   setCountdown: (seconds) => set({ countdown: seconds }),
-  setGameState: (state) => set({
+  setGameState: (state) => set((s) => ({
     gameState: state,
     phase: state.phase,
     countdown: null,
@@ -67,7 +73,9 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
     auctionState: state.auctionState,
     auctionResult: state.auctionState?.result ?? null,
     leaderboard: state.leaderboard,
-  }),
+    // gameStart 時更新 room.status → 'playing'，讓 App 跳出 WaitingScreen
+    room: s.room ? { ...s.room, status: 'playing' as const } : s.room,
+  })),
   setPhase: (phase) => set((s) => {
     const updates: Partial<DisplayStore> = { phase };
     if (phase === 'betting_round') {
