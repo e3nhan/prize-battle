@@ -74,6 +74,7 @@ export function adjustPlayerChips(
 
   const tx: ChipTransaction = {
     id: String(++txCounter),
+    type: 'transfer',
     fromPlayerId: fromSocketId,
     targetPlayerId,
     amount,
@@ -81,6 +82,38 @@ export function adjustPlayerChips(
     toNewBalance: target.chips,
     timestamp: Date.now(),
     note,
+  };
+
+  calcState.transactions.push(tx);
+  if (calcState.transactions.length > CALC_CONFIG.MAX_TRANSACTIONS) {
+    calcState.transactions = calcState.transactions.slice(-CALC_CONFIG.MAX_TRANSACTIONS);
+  }
+
+  return { tx, room: calcRoom };
+}
+
+export function topUpChips(
+  socketId: string,
+  amount: number,
+): { tx: ChipTransaction; room: Room } | null {
+  if (!calcRoom) return null;
+  if (!calcPlayerMap.has(socketId)) return null;
+  if (amount <= 0) return null;
+
+  const player = calcRoom.players.find((p: Player) => p.id === socketId);
+  if (!player) return null;
+
+  player.chips += amount;
+
+  const tx: ChipTransaction = {
+    id: String(++txCounter),
+    type: 'topup',
+    fromPlayerId: socketId,
+    targetPlayerId: socketId,
+    amount,
+    fromNewBalance: player.chips,
+    toNewBalance: player.chips,
+    timestamp: Date.now(),
   };
 
   calcState.transactions.push(tx);

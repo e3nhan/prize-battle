@@ -25,8 +25,11 @@ export interface Room {
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 
 // ===== 籌碼計算器 =====
+export type ChipTxType = 'transfer' | 'topup';
+
 export interface ChipTransaction {
   id: string;
+  type: ChipTxType;
   fromPlayerId: string;
   targetPlayerId: string;
   amount: number;

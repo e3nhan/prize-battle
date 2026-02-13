@@ -31,6 +31,7 @@ import {
   getOrCreateCalcRoom,
   joinCalcRoom,
   adjustPlayerChips,
+  topUpChips,
   handleCalcDisconnect,
   handleCalcReconnect,
   resetCalcRoom,
@@ -259,6 +260,16 @@ io.on('connection', (socket) => {
     const result = adjustPlayerChips(socket.id, targetPlayerId, amount, note);
     if (!result) {
       socket.emit('error', '調整籌碼失敗');
+      return;
+    }
+    io.to(result.room.id).emit('calcChipAdjusted', result.tx, result.room);
+    io.to(`display_${result.room.id}`).emit('calcChipAdjusted', result.tx, result.room);
+  });
+
+  socket.on('topUp', (amount: number) => {
+    const result = topUpChips(socket.id, amount);
+    if (!result) {
+      socket.emit('error', '儲值失敗');
       return;
     }
     io.to(result.room.id).emit('calcChipAdjusted', result.tx, result.room);

@@ -75,31 +75,74 @@ export default function CalcDisplay() {
         {/* Right: Transaction History */}
         <div className="w-96 flex flex-col">
           <h3 className="text-xl text-gray-400 mb-4">交易紀錄</h3>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
             {recentTx.length === 0 ? (
               <p className="text-center text-gray-600 mt-8">尚無紀錄</p>
             ) : (
-              recentTx.map((tx) => (
-                <motion.div
-                  key={tx.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-secondary border border-gray-700"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm">
-                      {getPlayerName(tx.fromPlayerId)}
-                      <span className="text-gray-500 font-normal mx-2">→</span>
-                      {getPlayerName(tx.targetPlayerId)}
+              <>
+                {/* Top-up records */}
+                {recentTx.some((tx) => tx.type === 'topup') && (
+                  <div>
+                    <p className="text-sm font-bold text-green-400 mb-2 flex items-center gap-1.5">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400" />
+                      儲值紀錄
                     </p>
-                    {tx.note && <p className="text-xs text-gray-500 truncate">{tx.note}</p>}
+                    <div className="space-y-2">
+                      {recentTx.filter((tx) => tx.type === 'topup').map((tx) => (
+                        <motion.div
+                          key={tx.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm text-green-300">
+                              {getPlayerAvatar(tx.fromPlayerId)} {getPlayerName(tx.fromPlayerId)}
+                            </p>
+                          </div>
+                          <span className="text-lg font-bold text-green-400 whitespace-nowrap">
+                            +🪙 {tx.amount}
+                          </span>
+                          <span className="text-xs text-gray-600 whitespace-nowrap">{formatTime(tx.timestamp)}</span>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                  <span className="text-lg font-bold text-gold whitespace-nowrap">
-                    🪙 {tx.amount}
-                  </span>
-                  <span className="text-xs text-gray-600 whitespace-nowrap">{formatTime(tx.timestamp)}</span>
-                </motion.div>
-              ))
+                )}
+
+                {/* Transfer records */}
+                {recentTx.some((tx) => tx.type === 'transfer') && (
+                  <div>
+                    <p className="text-sm font-bold text-neon-blue mb-2 flex items-center gap-1.5">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-neon-blue" />
+                      轉帳紀錄
+                    </p>
+                    <div className="space-y-2">
+                      {recentTx.filter((tx) => tx.type === 'transfer').map((tx) => (
+                        <motion.div
+                          key={tx.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-secondary border border-gray-700"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm">
+                              {getPlayerName(tx.fromPlayerId)}
+                              <span className="text-gray-500 font-normal mx-2">→</span>
+                              {getPlayerName(tx.targetPlayerId)}
+                            </p>
+                            {tx.note && <p className="text-xs text-gray-500 truncate">{tx.note}</p>}
+                          </div>
+                          <span className="text-lg font-bold text-gold whitespace-nowrap">
+                            🪙 {tx.amount}
+                          </span>
+                          <span className="text-xs text-gray-600 whitespace-nowrap">{formatTime(tx.timestamp)}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

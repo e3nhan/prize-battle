@@ -74,5 +74,6 @@ export interface ClientToServerEvents {
   joinCalculator: (playerName: string, initialChips?: number) => void;
   joinCalcDisplay: () => void;
   adjustChips: (targetPlayerId: string, amount: number, note?: string) => void;
+  topUp: (amount: number) => void;
   resetCalculator: () => void;
 }
