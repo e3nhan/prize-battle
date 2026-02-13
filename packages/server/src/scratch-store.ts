@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const DATA_DIR = join(__dirname, '../data');
+const DATA_DIR = process.env.SCRATCH_DATA_DIR || join(__dirname, '../data');
 const DATA_FILE = join(DATA_DIR, 'scratch-records.json');
 
 export interface ScratchType {
@@ -27,14 +27,39 @@ export interface ScratchData {
   records: ScratchRecord[];
 }
 
+// 預設資料：重新部署時若無持久化儲存，至少有初始人員與種類
+const DEFAULT_DATA: ScratchData = {
+  people: ['韓宗錡', '陳源德', '江家同', '羅致遠', '蘇彥齊', '林東餘', '趙偉康', '李祐德'],
+  scratchTypes: [
+    { id: 'caiyuan-100', name: '財源滾滾', price: 100 },
+    { id: 'horse-100', name: '馬年行大運', price: 100 },
+    { id: 'pushcoin-100', name: '推金幣', price: 100 },
+    { id: 'caishen-100', name: '財神報到', price: 100 },
+    { id: 'goldhorse-200', name: '金馬報喜', price: 200 },
+    { id: 'golddiamond-200', name: '金好鑽', price: 200 },
+    { id: 'sanyuan-200', name: '大三元', price: 200 },
+    { id: 'lucky-200', name: '好運連發', price: 200 },
+    { id: 'double-200', name: '獎金樂翻倍', price: 200 },
+    { id: 'ocean-300', name: '海底大尋寶', price: 300 },
+    { id: 'goldhorseaward-500', name: '金馬獎', price: 500 },
+    { id: 'wulu-500', name: '五路財神', price: 500 },
+    { id: 'hachu-500', name: '哈啾咪', price: 500 },
+    { id: 'dajili-1000', name: '1200萬大吉利', price: 1000 },
+    { id: 'hongbao-2000', name: '2000萬超級紅包', price: 2000 },
+  ],
+  records: [],
+};
+
 function load(): ScratchData {
   if (!existsSync(DATA_FILE)) {
-    return { people: [], scratchTypes: [], records: [] };
+    // 首次啟動：用預設資料建立檔案
+    save(DEFAULT_DATA);
+    return DEFAULT_DATA;
   }
   try {
     return JSON.parse(readFileSync(DATA_FILE, 'utf-8'));
   } catch {
-    return { people: [], scratchTypes: [], records: [] };
+    return DEFAULT_DATA;
   }
 }
 
