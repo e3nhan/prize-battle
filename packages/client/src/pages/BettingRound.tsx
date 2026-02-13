@@ -148,7 +148,15 @@ export default function BettingRound() {
       <Timer seconds={timeLeft} total={GAME_CONFIG.BETTING_TIME} />
 
       {/* Options */}
-      {hasPlacedBet ? (
+      {myChips === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-4xl mb-2">🏳️</p>
+            <p className="text-xl font-bold text-gray-500">籌碼歸零</p>
+            <p className="text-gray-600 text-sm mt-1">本輪自動跳過</p>
+          </div>
+        </div>
+      ) : hasPlacedBet ? (
         <div className="flex-1 flex items-center justify-center">
           <motion.div
             initial={{ scale: 0 }}

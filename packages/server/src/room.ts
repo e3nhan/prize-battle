@@ -37,7 +37,7 @@ export function joinMainRoom(socketId: string, playerName: string, buyIn: number
   const player: Player = {
     id: socketId,
     name: playerName,
-    chips: GAME_CONFIG.INITIAL_CHIPS,
+    chips: buyIn,
     buyIn,
     isReady: false,
     isConnected: true,
@@ -127,7 +127,7 @@ export function resetRoom(room: Room): void {
   room.status = 'waiting';
   room.gameState = null;
   for (const player of room.players) {
-    player.chips = GAME_CONFIG.INITIAL_CHIPS;
+    player.chips = player.buyIn;
     player.isReady = false;
   }
 }

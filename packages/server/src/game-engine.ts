@@ -302,9 +302,9 @@ export function handlePlaceBet(
     io.to(roomId).emit('playerBetConfirmed', playerId);
     io.to(`display_${roomId}`).emit('playerBetConfirmed', playerId);
 
-    // Check if all players have bet
+    // Check if all players have bet (skip disconnected and 0-chip players)
     const allBet = room.players.every(
-      (p) => !p.isConnected || gs.bettingState!.playerBets[p.id],
+      (p) => !p.isConnected || p.chips === 0 || gs.bettingState!.playerBets[p.id],
     );
     if (allBet) {
       clearTimer(roomId);
@@ -337,9 +337,9 @@ export function handleSubmitBid(
     io.to(roomId).emit('playerBidConfirmed', playerId);
     io.to(`display_${roomId}`).emit('playerBidConfirmed', playerId);
 
-    // Check if all players have bid
+    // Check if all players have bid (skip disconnected and 0-chip players)
     const allBid = room.players.every(
-      (p) => !p.isConnected || gs.auctionState!.playerBids[p.id] !== undefined,
+      (p) => !p.isConnected || p.chips === 0 || gs.auctionState!.playerBids[p.id] !== undefined,
     );
     if (allBid) {
       clearTimer(roomId);

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
@@ -17,10 +18,19 @@ export default function AuctionRound() {
   const setHasSubmittedBid = useGameStore((s) => s.setHasSubmittedBid);
   const confirmedBids = useGameStore((s) => s.confirmedBids);
 
+  const me = room?.players.find((p) => p.id === playerId);
+  const myChips = me?.chips ?? 0;
+
+  // 籌碼不足最低出價時自動棄標
+  useEffect(() => {
+    if (phase === 'auction_round' && myChips < GAME_CONFIG.MIN_BID && !hasSubmittedBid) {
+      getSocket().emit('submitBid', 0);
+      setHasSubmittedBid(true);
+    }
+  }, [phase, myChips, hasSubmittedBid]);
+
   if (!auctionState || !room) return null;
 
-  const me = room.players.find((p) => p.id === playerId);
-  const myChips = me?.chips ?? 0;
   const confirmedCount = confirmedBids.size;
   const totalPlayers = room.players.filter((p) => p.isConnected).length;
 
@@ -140,7 +150,18 @@ export default function AuctionRound() {
       </motion.div>
 
       {/* Bid input or waiting */}
-      {hasSubmittedBid ? (
+      {myChips < GAME_CONFIG.MIN_BID ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-4xl mb-2">🏳️</p>
+            <p className="text-xl font-bold text-gray-500">籌碼不足</p>
+            <p className="text-gray-600 text-sm mt-1">自動棄標，等待本輪結束</p>
+            <p className="text-gray-400 mt-2 text-sm">
+              ({confirmedCount}/{totalPlayers})
+            </p>
+          </div>
+        </div>
+      ) : hasSubmittedBid ? (
         <div className="flex-1 flex items-center justify-center">
           <motion.div
             initial={{ scale: 0 }}

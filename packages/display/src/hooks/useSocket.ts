@@ -27,6 +27,8 @@ export function useDisplaySocket(): TypedSocket {
     const s = socketRef.current;
 
     s.emit('joinDisplay');
+    // Re-join display room after socket reconnection (server-side room membership resets)
+    s.on('connect', () => s.emit('joinDisplay'));
 
     s.on('roomUpdate', (room) => store.setRoom(room));
     s.on('gameStart', (state) => store.setGameState(state));
@@ -42,6 +44,7 @@ export function useDisplaySocket(): TypedSocket {
     s.on('finalResult', (leaderboard) => store.setLeaderboard(leaderboard));
 
     return () => {
+      s.off('connect');
       s.off('roomUpdate');
       s.off('gameStart');
       s.off('phaseChange');
