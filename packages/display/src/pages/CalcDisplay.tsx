@@ -59,6 +59,7 @@ export default function CalcDisplay() {
                   >
                     🪙 {player.chips}
                   </motion.p>
+                  <p className="text-sm text-gray-500 mt-1">初始預算 {player.buyIn}</p>
                 </motion.div>
               ))}
             </AnimatePresence>

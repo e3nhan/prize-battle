@@ -60,6 +60,7 @@ export default function CalculatorMain() {
           <div className="mt-1">
             <span className="text-sm text-gray-400">{me.avatar} {me.name}</span>
             <p className="text-2xl font-black text-gold">🪙 {me.chips}</p>
+            <p className="text-xs text-gray-500">初始預算 {me.buyIn}</p>
           </div>
         )}
       </div>
@@ -219,6 +220,7 @@ export default function CalculatorMain() {
                   <span className="text-xl">{player.avatar}</span>
                   <p className="text-xs font-bold mt-1 truncate">{player.name}</p>
                   <p className="text-xs text-gold">🪙 {player.chips}</p>
+                  <p className="text-[10px] text-gray-500">初始 {player.buyIn}</p>
                 </button>
               ))}
               {otherPlayers.length === 0 && (
