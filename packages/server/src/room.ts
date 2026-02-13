@@ -126,6 +126,8 @@ export function getPlayerRoomId(socketId: string): string | undefined {
 export function resetRoom(room: Room): void {
   room.status = 'waiting';
   room.gameState = null;
+  // 移除已斷線玩家，避免鬼玩家卡住下局準備
+  room.players = room.players.filter((p: Player) => p.isConnected);
   for (const player of room.players) {
     player.chips = player.buyIn;
     player.isReady = false;

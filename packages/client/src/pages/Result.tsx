@@ -5,13 +5,12 @@ import { getSocket } from '../hooks/useSocket';
 export default function Result() {
   const leaderboard = useGameStore((s) => s.leaderboard);
   const playerId = useGameStore((s) => s.playerId);
-  const reset = useGameStore((s) => s.reset);
 
   const myEntry = leaderboard.find((e) => e.playerId === playerId);
 
   const handlePlayAgain = () => {
     getSocket().emit('playAgain');
-    reset();
+    // 不呼叫 reset()，讓 server 的 roomUpdate(status='waiting') 自動導向 lobby
   };
 
   const rankEmojis = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];

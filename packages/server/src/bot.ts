@@ -28,7 +28,7 @@ export function addBots(count: number): Room {
     const bot: Player = {
       id: `${BOT_PREFIX}${index + 1}`,
       name: BOT_NAMES[index] || `電腦${index + 1}`,
-      chips: GAME_CONFIG.INITIAL_CHIPS,
+      chips: 100,
       buyIn: 100,
       isReady: true,
       isConnected: true,
