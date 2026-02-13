@@ -151,28 +151,6 @@ function resolveBettingRound(io: TypedServer, roomId: string): void {
   const gs = room.gameState!;
   const bettingState = gs.bettingState!;
 
-  // 未下注玩家（斷線或超時）自動以最低金額隨機下注，避免斷線成為安全策略
-  for (const player of room.players) {
-    if (bettingState.playerBets[player.id] || player.chips === 0) continue;
-    const minBetRatio = bettingState.minBetRatio ?? GAME_CONFIG.MIN_BET_RATIO;
-    const minBet = Math.ceil(player.chips * minBetRatio);
-    if (bettingState.type === 'group_predict') {
-      const choices = bettingState.options.filter((o) => o.id.startsWith('choice_'));
-      const predicts = bettingState.options.filter((o) => o.id.startsWith('predict_'));
-      const choice = choices[Math.floor(Math.random() * choices.length)];
-      const predict = predicts[Math.floor(Math.random() * predicts.length)];
-      if (choice && predict) {
-        placeBet(bettingState, player.id, predict.id, minBet, player.chips, choice.id);
-      }
-    } else {
-      const validOptions = bettingState.options.filter((o) => !o.id.startsWith('choice_'));
-      const option = validOptions[Math.floor(Math.random() * validOptions.length)];
-      if (option) {
-        placeBet(bettingState, player.id, option.id, minBet, player.chips);
-      }
-    }
-  }
-
   gs.phase = 'betting_reveal';
   emitPhaseChange(io, roomId, 'betting_reveal');
 
@@ -297,19 +275,21 @@ function resolveAuctionRound(io: TypedServer, roomId: string): void {
   const gs = room.gameState!;
   const auctionState = gs.auctionState!;
 
-  // 未出價玩家（斷線或超時）自動放棄（bid 0）
-  for (const player of room.players) {
-    if (auctionState.playerBids[player.id] !== undefined || player.chips === 0) continue;
-    auctionState.playerBids[player.id] = 0;
-  }
-
   gs.phase = 'auction_reveal';
   emitPhaseChange(io, roomId, 'auction_reveal');
 
   const boxIndex = gs.currentRound - 1;
   const box = auctionBoxes[boxIndex];
 
-  const result = resolveAuction(auctionState, box, room.players, playerShields);
+  // 只讓連線玩家參與拍賣效果，斷線玩家資產凍結
+  const connectedPlayers = room.players.filter((p: Player) => p.isConnected);
+  const result = resolveAuction(auctionState, box, connectedPlayers, playerShields);
+  // 補上斷線玩家的籌碼（未異動）
+  for (const p of room.players) {
+    if (!result.playerChipsAfter[p.id]) {
+      result.playerChipsAfter[p.id] = p.chips;
+    }
+  }
   auctionState.result = result;
 
   // 先送結果（含 playerChipsAfter），延遲 roomUpdate 到排行榜階段
