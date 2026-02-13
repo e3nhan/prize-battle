@@ -14,6 +14,25 @@ export default function AuctionDisplay() {
   const confirmedRoundReady = useDisplayStore((s) => s.confirmedRoundReady);
   const timeLeft = useDisplayStore((s) => s.timeLeft);
 
+  // Intro 階段 auctionState 尚未送達，必須在 null guard 之前
+  if (phase === 'auction_intro') {
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', damping: 10 }}
+          className="text-center"
+        >
+          <p className="text-[100px]">📦</p>
+          <h1 className="text-6xl font-black text-gold glow-text-gold mt-4">拍賣戰</h1>
+          <p className="text-2xl text-gray-400 mt-4">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 個寶箱，暗標出價！</p>
+          <p className="text-xl text-gray-500 mt-2">💎鑽石 x1 · 📦普通 x2 · 💀炸彈 x2 · 🎭神秘 x1</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!room || !auctionState) return null;
 
   // Briefing：每箱拍賣前說明，等玩家確認
@@ -49,25 +68,6 @@ export default function AuctionDisplay() {
             confirmedActions={confirmedRoundReady}
             showChips
           />
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Intro
-  if (phase === 'auction_intro') {
-    return (
-      <div className="h-full flex flex-col items-center justify-center">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', damping: 10 }}
-          className="text-center"
-        >
-          <p className="text-[100px]">📦</p>
-          <h1 className="text-6xl font-black text-gold glow-text-gold mt-4">拍賣戰</h1>
-          <p className="text-2xl text-gray-400 mt-4">共 {GAME_CONFIG.TOTAL_AUCTION_ITEMS} 個寶箱，暗標出價！</p>
-          <p className="text-xl text-gray-500 mt-2">💎鑽石 x1 · 📦普通 x2 · 💀炸彈 x2 · 🎭神秘 x1</p>
         </motion.div>
       </div>
     );
