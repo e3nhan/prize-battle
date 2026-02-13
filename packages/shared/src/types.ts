@@ -30,7 +30,8 @@ export interface ChipTransaction {
   fromPlayerId: string;
   targetPlayerId: string;
   amount: number;
-  newBalance: number;
+  fromNewBalance: number;
+  toNewBalance: number;
   timestamp: number;
   note?: string;
 }

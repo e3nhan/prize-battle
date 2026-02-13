@@ -61,10 +61,15 @@ export function adjustPlayerChips(
 ): { tx: ChipTransaction; room: Room } | null {
   if (!calcRoom) return null;
   if (!calcPlayerMap.has(fromSocketId)) return null;
+  if (amount <= 0) return null;
 
+  const from = calcRoom.players.find((p: Player) => p.id === fromSocketId);
   const target = calcRoom.players.find((p: Player) => p.id === targetPlayerId);
-  if (!target) return null;
+  if (!from || !target) return null;
+  if (fromSocketId === targetPlayerId) return null;
 
+  // 轉帳：從自己扣，給對方加
+  from.chips -= amount;
   target.chips += amount;
 
   const tx: ChipTransaction = {
@@ -72,7 +77,8 @@ export function adjustPlayerChips(
     fromPlayerId: fromSocketId,
     targetPlayerId,
     amount,
-    newBalance: target.chips,
+    fromNewBalance: from.chips,
+    toNewBalance: target.chips,
     timestamp: Date.now(),
     note,
   };

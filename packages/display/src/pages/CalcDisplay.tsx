@@ -86,17 +86,17 @@ export default function CalcDisplay() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-3 p-3 rounded-xl bg-secondary border border-gray-700"
                 >
-                  <span className={`text-xl font-bold whitespace-nowrap ${
-                    tx.amount > 0 ? 'text-neon-green' : 'text-accent'
-                  }`}>
-                    {tx.amount > 0 ? '+' : ''}{tx.amount}
-                  </span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate">{getPlayerName(tx.targetPlayerId)}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      by {getPlayerName(tx.fromPlayerId)}{tx.note ? ` · ${tx.note}` : ''}
+                    <p className="font-bold text-sm">
+                      {getPlayerName(tx.fromPlayerId)}
+                      <span className="text-gray-500 font-normal mx-2">→</span>
+                      {getPlayerName(tx.targetPlayerId)}
                     </p>
+                    {tx.note && <p className="text-xs text-gray-500 truncate">{tx.note}</p>}
                   </div>
+                  <span className="text-lg font-bold text-gold whitespace-nowrap">
+                    🪙 {tx.amount}
+                  </span>
                   <span className="text-xs text-gray-600 whitespace-nowrap">{formatTime(tx.timestamp)}</span>
                 </motion.div>
               ))
