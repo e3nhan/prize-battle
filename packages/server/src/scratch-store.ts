@@ -86,7 +86,26 @@ function load(): ScratchData {
     return DEFAULT_DATA;
   }
   try {
-    return JSON.parse(readFileSync(DATA_FILE, 'utf-8'));
+    const data: ScratchData = JSON.parse(readFileSync(DATA_FILE, 'utf-8'));
+    // 自動合併預設種類：新種類加入，已存在的補上缺少的欄位
+    let changed = false;
+    for (const def of DEFAULT_DATA.scratchTypes) {
+      const existing = data.scratchTypes.find((t) => t.id === def.id);
+      if (!existing) {
+        data.scratchTypes.push(def);
+        changed = true;
+      } else {
+        // 補上新欄位（不覆蓋已有值）
+        for (const key of Object.keys(def) as (keyof ScratchType)[]) {
+          if (existing[key] === undefined && def[key] !== undefined) {
+            (existing as Record<string, unknown>)[key] = def[key];
+            changed = true;
+          }
+        }
+      }
+    }
+    if (changed) save(data);
+    return data;
   } catch {
     return DEFAULT_DATA;
   }
