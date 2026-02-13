@@ -34,6 +34,7 @@ import {
   addRecord as addScratchRecord,
   deleteRecord as deleteScratchRecord,
 } from './scratch-store.js';
+import { getGameLogs } from './game-log.js';
 import {
   getOrCreateCalcRoom,
   joinCalcRoom,
@@ -115,6 +116,11 @@ app.delete('/api/scratch/records/:id', (req, res) => {
   const ok = deleteScratchRecord(req.params.id);
   if (!ok) { res.status(404).json({ error: 'Record not found' }); return; }
   res.json({ success: true });
+});
+
+// ===== 遊戲紀錄 API =====
+app.get('/api/game-logs', (_req, res) => {
+  res.json(getGameLogs());
 });
 
 // Initialize the main room on startup

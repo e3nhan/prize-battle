@@ -17,6 +17,7 @@ import type { ServerToClientEvents, ClientToServerEvents } from '@prize-battle/s
 import { createBettingState, placeBet, resolveBetting } from './betting.js';
 import { createAuctionBoxes, createAuctionState, submitBid, resolveAuction } from './auction.js';
 import { scheduleBotBets, scheduleBotBids } from './bot.js';
+import { logGameResult } from './game-log.js';
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -27,6 +28,7 @@ interface ActiveGame {
   timerInterval: ReturnType<typeof setInterval> | null;
   roundReadyPlayers: Set<string>;
   roundReadyTimeout: ReturnType<typeof setTimeout> | null;
+  startTime: number;
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -53,6 +55,7 @@ export function startGame(io: TypedServer, room: Room): void {
     timerInterval: null,
     roundReadyPlayers: new Set(),
     roundReadyTimeout: null,
+    startTime: Date.now(),
   };
 
   activeGames.set(room.id, activeGame);
@@ -313,6 +316,8 @@ function showFinalResults(io: TypedServer, roomId: string): void {
   gs.leaderboard = calculateLeaderboard(room.players, totalPrize);
 
   room.status = 'finished';
+
+  logGameResult(room.players, gs.leaderboard, totalPrize, game.startTime);
 
   emitPhaseChange(io, roomId, 'final_result');
   io.to(roomId).emit('finalResult', gs.leaderboard);
