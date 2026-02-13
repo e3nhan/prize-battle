@@ -162,7 +162,7 @@ export default function AuctionRound() {
             </motion.p>
           )}
 
-          {delta !== 0 && (
+          {auctionResult.winnerId !== null && delta !== 0 && (
             <p className={`text-lg font-bold ${delta > 0 ? 'text-neon-green' : 'text-accent'}`}>
               {delta > 0 ? `+${delta}` : `${delta}`} 籌碼
             </p>

@@ -260,15 +260,17 @@ function resolveAuctionRound(io: TypedServer, roomId: string): void {
   const result = resolveAuction(auctionState, box, room.players, playerShields);
   auctionState.result = result;
 
-  // Sync updated chips to all clients
-  io.to(roomId).emit('roomUpdate', room);
-  io.to(`display_${roomId}`).emit('roomUpdate', room);
-
+  // 先送結果（含 playerChipsAfter），延遲 roomUpdate 到排行榜階段
+  // 避免玩家在揭曉動畫前就看到籌碼跳動
   setTimeout(() => {
     io.to(roomId).emit('auctionResult', result);
     io.to(`display_${roomId}`).emit('auctionResult', result);
 
     setTimeout(() => {
+      // 進入結果階段時才同步籌碼，排行榜才會顯示正確數值
+      io.to(roomId).emit('roomUpdate', room);
+      io.to(`display_${roomId}`).emit('roomUpdate', room);
+
       gs.phase = 'auction_result';
       emitPhaseChange(io, roomId, 'auction_result');
 
