@@ -142,6 +142,10 @@ function resolveBettingRound(io: TypedServer, roomId: string): void {
   const result = resolveBetting(bettingState, room.players);
   bettingState.result = result;
 
+  // Sync updated chips to all clients
+  io.to(roomId).emit('roomUpdate', room);
+  io.to(`display_${roomId}`).emit('roomUpdate', room);
+
   // Send result after a brief delay for suspense
   setTimeout(() => {
     io.to(roomId).emit('bettingResult', result);
@@ -255,6 +259,10 @@ function resolveAuctionRound(io: TypedServer, roomId: string): void {
 
   const result = resolveAuction(auctionState, box, room.players, playerShields);
   auctionState.result = result;
+
+  // Sync updated chips to all clients
+  io.to(roomId).emit('roomUpdate', room);
+  io.to(`display_${roomId}`).emit('roomUpdate', room);
 
   setTimeout(() => {
     io.to(roomId).emit('auctionResult', result);
