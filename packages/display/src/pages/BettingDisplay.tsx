@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useDisplayStore } from '../stores/displayStore';
 import { getBetTypeTitle, getBetTypeDescription, GAME_CONFIG } from '@prize-battle/shared';
@@ -261,28 +262,7 @@ function renderAnimation(type: string, data: any, isRevealing: boolean) {
 
     case 'mystery_pick': {
       const mysteryData = data as MysteryAnimationData;
-      return (
-        <div className="flex gap-4 justify-center">
-          {mysteryData.boxes.map((box, i) => (
-            <motion.div
-              key={box.id}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: isRevealing ? i * 0.3 : 0 }}
-              className="w-24 h-24 rounded-xl bg-secondary border-2 border-gold/30 flex flex-col items-center justify-center"
-            >
-              {!isRevealing ? (
-                <>
-                  <span className="text-2xl">{box.multiplier >= 3 ? '💎' : box.multiplier >= 1.5 ? '🎁' : box.multiplier >= 1 ? '📭' : '💣'}</span>
-                  <span className="text-xs text-gold mt-1">{box.multiplier}x</span>
-                </>
-              ) : (
-                <span className="text-3xl">❓</span>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      );
+      return <DisplayMysteryReveal data={mysteryData} isRevealing={isRevealing} />;
     }
 
     case 'group_predict': {
@@ -325,4 +305,77 @@ function renderAnimation(type: string, data: any, isRevealing: boolean) {
     default:
       return <p className="text-2xl text-gray-400">開獎中...</p>;
   }
+}
+
+function getBoxEmoji(multiplier: number): string {
+  if (multiplier >= 3) return '💎';
+  if (multiplier >= 1.5) return '🎁';
+  if (multiplier >= 1) return '📭';
+  return '💣';
+}
+
+function DisplayMysteryReveal({ data, isRevealing }: { data: MysteryAnimationData; isRevealing: boolean }) {
+  const [revealedCount, setRevealedCount] = useState(0);
+
+  // 揭曉順序依 revealOrder
+  const revealOrder = data.revealOrder.length > 0 ? data.revealOrder : data.boxes.map((b) => b.id);
+
+  useEffect(() => {
+    if (!isRevealing) {
+      // result phase — 全部揭曉
+      setRevealedCount(revealOrder.length);
+      return;
+    }
+    // reveal phase — 逐一揭曉
+    if (revealedCount >= revealOrder.length) return;
+    const timer = setTimeout(() => {
+      setRevealedCount((c) => c + 1);
+    }, revealedCount === 0 ? 800 : 800);
+    return () => clearTimeout(timer);
+  }, [revealedCount, revealOrder.length, isRevealing]);
+
+  // Reset when new data comes in
+  useEffect(() => {
+    if (isRevealing) setRevealedCount(0);
+  }, [data, isRevealing]);
+
+  const revealedSet = new Set(revealOrder.slice(0, revealedCount));
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      <h2 className="text-3xl font-bold text-gold">
+        {revealedCount < revealOrder.length ? `揭曉中... (${revealedCount}/${revealOrder.length})` : '全部揭曉！'}
+      </h2>
+      <div className="flex gap-5 justify-center">
+        {data.boxes.map((box) => {
+          const isRevealed = revealedSet.has(box.id);
+          return (
+            <motion.div
+              key={box.id}
+              animate={isRevealed ? { rotateY: [0, 90, 0], scale: [1, 1.15, 1] } : { scale: [1, 1.03, 1] }}
+              transition={isRevealed ? { duration: 0.5 } : { duration: 1.5, repeat: Infinity }}
+              className={`w-28 h-28 rounded-2xl flex flex-col items-center justify-center border-2 ${
+                isRevealed ? 'border-gold/50 bg-secondary' : 'border-gray-600 bg-gray-800'
+              }`}
+            >
+              {isRevealed ? (
+                <>
+                  <span className="text-4xl">{getBoxEmoji(box.multiplier)}</span>
+                  <span className="text-sm text-gold mt-1 font-bold">{box.multiplier}x</span>
+                </>
+              ) : (
+                <motion.span
+                  animate={{ rotate: [0, -5, 5, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity }}
+                  className="text-4xl"
+                >
+                  ❓
+                </motion.span>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

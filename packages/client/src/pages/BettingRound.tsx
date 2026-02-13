@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../hooks/useSocket';
 import { getBetTypeTitle, getBetTypeDescription, getMinBet } from '@prize-battle/shared';
+import type { MysteryAnimationData } from '@prize-battle/shared';
 import Timer from '../components/Timer';
 import ChipDisplay from '../components/ChipDisplay';
 import BetSlider from '../components/BetSlider';
@@ -197,10 +198,15 @@ export default function BettingRound() {
   if (phase === 'betting_reveal') {
     const isDice = bettingState.type === 'dice_high_low' || bettingState.type === 'dice_exact';
     const diceResult = bettingResult?.animationData as { dice?: number[] } | undefined;
+    const isMystery = bettingState.type === 'mystery_pick';
+    const mysteryData = isMystery ? bettingResult?.animationData as MysteryAnimationData | undefined : undefined;
+
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
         {isDice && diceResult?.dice ? (
           <ClientDiceReveal dice={diceResult.dice} />
+        ) : isMystery && mysteryData ? (
+          <ClientMysteryReveal data={mysteryData} myBoxId={myBetInfo?.optionId ?? null} />
         ) : bettingResult ? (
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -449,6 +455,73 @@ function MiniDiceFace({ value }: { value: number }) {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+function getBoxEmoji(multiplier: number): string {
+  if (multiplier >= 3) return '💎';
+  if (multiplier >= 1.5) return '🎁';
+  if (multiplier >= 1) return '📭';
+  return '💣';
+}
+
+function ClientMysteryReveal({ data, myBoxId }: { data: MysteryAnimationData; myBoxId: string | null }) {
+  const [revealedCount, setRevealedCount] = useState(0);
+
+  // 建立揭曉順序：玩家選的箱子放最後
+  const revealOrder = (() => {
+    const others = data.boxes.filter((b) => b.id !== myBoxId).map((b) => b.id);
+    const mine = myBoxId && data.boxes.find((b) => b.id === myBoxId) ? [myBoxId] : [];
+    return [...others, ...mine];
+  })();
+
+  useEffect(() => {
+    if (revealedCount >= revealOrder.length) return;
+    const timer = setTimeout(() => {
+      setRevealedCount((c) => c + 1);
+      if (navigator.vibrate) navigator.vibrate(40);
+    }, revealedCount === 0 ? 600 : 800);
+    return () => clearTimeout(timer);
+  }, [revealedCount, revealOrder.length]);
+
+  const revealedSet = new Set(revealOrder.slice(0, revealedCount));
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <h2 className="text-xl font-bold text-gold">
+        {revealedCount < revealOrder.length ? '逐一揭曉...' : '全部揭曉！'}
+      </h2>
+      <div className="flex gap-3 flex-wrap justify-center">
+        {data.boxes.map((box) => {
+          const isRevealed = revealedSet.has(box.id);
+          const isMine = box.id === myBoxId;
+          return (
+            <motion.div
+              key={box.id}
+              animate={isRevealed ? { rotateY: [0, 90, 0], scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 0.4 }}
+              className={`w-16 h-20 rounded-xl flex flex-col items-center justify-center border-2 ${
+                isMine
+                  ? isRevealed ? 'border-gold bg-gold/10' : 'border-gold/60 bg-gold/5'
+                  : isRevealed ? 'border-gray-500 bg-secondary' : 'border-gray-700 bg-secondary'
+              }`}
+            >
+              {isRevealed ? (
+                <>
+                  <span className="text-2xl">{getBoxEmoji(box.multiplier)}</span>
+                  <span className="text-xs text-gold mt-1">{box.multiplier}x</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl">❓</span>
+                  {isMine && <span className="text-[10px] text-gold mt-1">你的</span>}
+                </>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
