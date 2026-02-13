@@ -64,7 +64,7 @@ export default function DiceAnimation({ dice, rolling, onComplete }: DiceAnimati
             }}
             className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-2xl"
           >
-            <span className="text-6xl leading-none">{diceFaces[d]}</span>
+            <span className="text-6xl leading-none text-gray-900">{diceFaces[d]}</span>
           </motion.div>
         ))}
       </div>
