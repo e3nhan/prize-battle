@@ -292,13 +292,16 @@ export function generateAuctionBoxes(): AuctionBox[] {
 // ===== 排行榜計算 =====
 export function calculateLeaderboard(players: Player[], totalPrizePool: number): LeaderboardEntry[] {
   const sorted = [...players].sort((a, b) => b.chips - a.chips);
+  const totalChips = players.reduce((sum, p) => sum + p.chips, 0);
 
   return sorted.map((player, index) => ({
     playerId: player.id,
     playerName: player.name,
     chips: player.chips,
     rank: index + 1,
-    prize: Math.floor(totalPrizePool * (GAME_CONFIG.PRIZE_DISTRIBUTION[index] || 0)),
+    prize: totalChips > 0
+      ? Math.round((player.chips / totalChips) * totalPrizePool)
+      : Math.round(totalPrizePool / players.length),
   }));
 }
 

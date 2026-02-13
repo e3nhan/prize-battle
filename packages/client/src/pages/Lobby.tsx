@@ -37,6 +37,9 @@ export default function Lobby() {
         <p className="text-sm text-gray-500 mt-1">
           {room.players.length} / {room.maxPlayers} 人
         </p>
+        <p className="text-base font-bold text-neon-green mt-1">
+          🏆 獎金池：{room.players.reduce((sum, p) => sum + p.buyIn, 0)} 元
+        </p>
       </div>
 
       {/* Player list */}
@@ -55,12 +58,15 @@ export default function Lobby() {
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">{player.avatar}</span>
-              <span className="font-bold text-lg">
-                {player.name}
-                {player.id === playerId && (
-                  <span className="text-gold text-sm ml-2">(你)</span>
-                )}
-              </span>
+              <div>
+                <span className="font-bold text-lg">
+                  {player.name}
+                  {player.id === playerId && (
+                    <span className="text-gold text-sm ml-2">(你)</span>
+                  )}
+                </span>
+                <p className="text-xs text-gold">💰 {player.buyIn} 元</p>
+              </div>
             </div>
             <span
               className={`px-3 py-1 rounded-full text-sm font-bold ${

@@ -3,7 +3,6 @@ import { useDisplayStore } from '../stores/displayStore';
 import { getBetTypeTitle, GAME_CONFIG } from '@prize-battle/shared';
 import type { DiceAnimationData, RouletteAnimationData, CoinAnimationData, MysteryAnimationData, GroupPredictAnimationData } from '@prize-battle/shared';
 import PlayerList from '../components/PlayerList';
-import ChipRanking from '../components/ChipRanking';
 import DiceAnimation from '../components/DiceAnimation';
 import RouletteWheel from '../components/RouletteWheel';
 
@@ -15,9 +14,9 @@ export default function BettingDisplay() {
   const confirmedBets = useDisplayStore((s) => s.confirmedBets);
   const timeLeft = useDisplayStore((s) => s.timeLeft);
 
-  if (!room || !bettingState) return null;
+  if (!room) return null;
 
-  // Intro
+  // Intro (bettingState not yet available at this phase)
   if (phase === 'betting_intro') {
     return (
       <div className="h-full flex flex-col items-center justify-center">
@@ -34,6 +33,8 @@ export default function BettingDisplay() {
       </div>
     );
   }
+
+  if (!bettingState) return null;
 
   // Reveal / Result with animation
   if ((phase === 'betting_reveal' || phase === 'betting_result') && bettingResult) {

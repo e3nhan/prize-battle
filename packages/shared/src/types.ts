@@ -3,6 +3,7 @@ export interface Player {
   id: string;
   name: string;
   chips: number;
+  buyIn: number;
   isReady: boolean;
   isConnected: boolean;
   avatar: string;

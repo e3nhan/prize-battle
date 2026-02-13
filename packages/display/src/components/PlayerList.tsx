@@ -5,9 +5,10 @@ interface PlayerListProps {
   players: Player[];
   confirmedActions?: Set<string>;
   showChips?: boolean;
+  showBuyIn?: boolean;
 }
 
-export default function PlayerList({ players, confirmedActions, showChips = false }: PlayerListProps) {
+export default function PlayerList({ players, confirmedActions, showChips = false, showBuyIn = false }: PlayerListProps) {
   return (
     <div className="grid grid-cols-4 gap-3">
       {players.map((player, i) => (
@@ -28,6 +29,9 @@ export default function PlayerList({ players, confirmedActions, showChips = fals
           <p className="font-bold text-sm mt-1 truncate">{player.name}</p>
           {showChips && (
             <p className="text-gold text-xs mt-1">🪙 {player.chips.toLocaleString()}</p>
+          )}
+          {showBuyIn && (
+            <p className="text-neon-green text-xs mt-1">💰 {player.buyIn} 元</p>
           )}
           {confirmedActions?.has(player.id) && (
             <motion.div

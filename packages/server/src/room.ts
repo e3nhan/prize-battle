@@ -27,7 +27,7 @@ export function getOrCreateMainRoom(): Room {
   return room;
 }
 
-export function joinMainRoom(socketId: string, playerName: string): Room {
+export function joinMainRoom(socketId: string, playerName: string, buyIn: number): Room {
   const room = getOrCreateMainRoom();
   if (room.status !== 'waiting') throw new Error('遊戲已開始');
   if (room.players.length >= room.maxPlayers) throw new Error('房間已滿');
@@ -38,6 +38,7 @@ export function joinMainRoom(socketId: string, playerName: string): Room {
     id: socketId,
     name: playerName,
     chips: GAME_CONFIG.INITIAL_CHIPS,
+    buyIn,
     isReady: false,
     isConnected: true,
     avatar: getRandomAvatar(existingAvatars),

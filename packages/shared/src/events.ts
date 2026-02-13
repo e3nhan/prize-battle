@@ -36,7 +36,7 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   // 房間
-  quickJoin: (playerName: string) => void;
+  quickJoin: (playerName: string, buyIn: number) => void;
   playerReady: () => void;
   playerUnready: () => void;
 

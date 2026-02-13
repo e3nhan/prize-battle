@@ -228,7 +228,7 @@ function showFinalResults(io: TypedServer, roomId: string): void {
   const gs = room.gameState!;
 
   gs.phase = 'final_result';
-  const totalPrize = room.players.length * GAME_CONFIG.INITIAL_CHIPS;
+  const totalPrize = room.players.reduce((sum, p) => sum + p.buyIn, 0);
   gs.leaderboard = calculateLeaderboard(room.players, totalPrize);
 
   room.status = 'finished';

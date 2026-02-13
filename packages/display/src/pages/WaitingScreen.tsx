@@ -86,10 +86,15 @@ export default function WaitingScreen() {
             animate={{ opacity: 1, x: 0 }}
             className="flex-1"
           >
-            <p className="text-xl text-gray-400 mb-4">
-              已加入玩家 ({room.players.length} / {room.maxPlayers})
-            </p>
-            <PlayerList players={room.players} />
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xl text-gray-400">
+                已加入玩家 ({room.players.length} / {room.maxPlayers})
+              </p>
+              <p className="text-xl font-bold text-neon-green">
+                🏆 獎金池：{room.players.reduce((sum, p) => sum + p.buyIn, 0)} 元
+              </p>
+            </div>
+            <PlayerList players={room.players} showBuyIn />
             {room.players.length < 2 && (
               <p className="text-gray-500 text-center mt-4">至少需要 2 人才能開始</p>
             )}

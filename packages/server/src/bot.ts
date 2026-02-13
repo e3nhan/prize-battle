@@ -29,6 +29,7 @@ export function addBots(count: number): Room {
       id: `${BOT_PREFIX}${index + 1}`,
       name: BOT_NAMES[index] || `電腦${index + 1}`,
       chips: GAME_CONFIG.INITIAL_CHIPS,
+      buyIn: 100,
       isReady: true,
       isConnected: true,
       avatar: BOT_AVATARS[index] || '🤖',

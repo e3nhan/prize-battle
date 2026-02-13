@@ -69,13 +69,13 @@ getOrCreateMainRoom();
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
-  socket.on('quickJoin', (playerName: string) => {
+  socket.on('quickJoin', (playerName: string, buyIn: number) => {
     try {
-      const room = joinMainRoom(socket.id, playerName);
+      const room = joinMainRoom(socket.id, playerName, buyIn);
       socket.join(room.id);
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
-      console.log(`${playerName} joined the game`);
+      console.log(`${playerName} joined the game (buy-in: ${buyIn})`);
     } catch (err: any) {
       socket.emit('error', err.message);
     }
