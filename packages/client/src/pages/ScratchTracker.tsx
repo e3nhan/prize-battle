@@ -13,6 +13,7 @@ interface ScratchType {
   jackpotRate?: number;     // 頭獎率 (%)
   profitRate?: number;      // 賺錢率 (%)
   expectedReturn?: number;  // 回本率 (%)
+  expectedValue?: number;   // 期望值（元）
 }
 
 interface ScratchRecord {
@@ -219,6 +220,7 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
             {selectedType.winRate != null && <span>中獎率 {selectedType.winRate}%</span>}
             {selectedType.profitRate != null && <span>賺錢率 {selectedType.profitRate}%</span>}
             {selectedType.expectedReturn != null && <span>回本率 {selectedType.expectedReturn}%</span>}
+            {selectedType.expectedValue != null && <span className="text-accent">期望值 {selectedType.expectedValue}元</span>}
             {selectedType.jackpot != null && <span>頭獎 ${selectedType.jackpot.toLocaleString()}</span>}
           </div>
         )}
@@ -550,8 +552,8 @@ function StatsTab({ data }: { data: ScratchData }) {
                       )}
                     </div>
                   </div>
-                  {/* 頭獎資訊 */}
-                  {(s.type.jackpot != null || s.type.jackpotCount != null) && (
+                  {/* 頭獎 & 期望值資訊 */}
+                  {(s.type.jackpot != null || s.type.jackpotCount != null || s.type.expectedValue != null) && (
                     <div className="flex items-center justify-between text-xs text-gray-500 px-1">
                       {s.type.jackpot != null && (
                         <span>頭獎 ${s.type.jackpot.toLocaleString()}</span>
@@ -561,6 +563,9 @@ function StatsTab({ data }: { data: ScratchData }) {
                       )}
                       {s.type.jackpotRate != null && (
                         <span>頭獎率 {s.type.jackpotRate.toFixed(5)}%</span>
+                      )}
+                      {s.type.expectedValue != null && (
+                        <span className="text-accent">期望值 {s.type.expectedValue}元</span>
                       )}
                     </div>
                   )}
@@ -699,7 +704,7 @@ function SettingsTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => 
                     text-white text-xs focus:border-neon-green/50 focus:outline-none"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5">
                 <input
                   type="number"
                   inputMode="numeric"
@@ -724,6 +729,15 @@ function SettingsTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => 
                   value={t.jackpotRate ?? ''}
                   onChange={(e) => updateType(i, 'jackpotRate', e.target.value)}
                   placeholder="頭獎率%"
+                  className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
+                    text-white text-xs focus:border-neon-green/50 focus:outline-none"
+                />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={t.expectedValue ?? ''}
+                  onChange={(e) => updateType(i, 'expectedValue', e.target.value)}
+                  placeholder="期望值"
                   className="px-2 py-1.5 rounded-lg bg-secondary border-2 border-white/10
                     text-white text-xs focus:border-neon-green/50 focus:outline-none"
                 />
