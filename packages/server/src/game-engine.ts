@@ -151,6 +151,28 @@ function resolveBettingRound(io: TypedServer, roomId: string): void {
   const gs = room.gameState!;
   const bettingState = gs.bettingState!;
 
+  // 未下注玩家（斷線或超時）自動以最低金額隨機下注，避免斷線成為安全策略
+  for (const player of room.players) {
+    if (bettingState.playerBets[player.id] || player.chips === 0) continue;
+    const minBetRatio = bettingState.minBetRatio ?? GAME_CONFIG.MIN_BET_RATIO;
+    const minBet = Math.ceil(player.chips * minBetRatio);
+    if (bettingState.type === 'group_predict') {
+      const choices = bettingState.options.filter((o) => o.id.startsWith('choice_'));
+      const predicts = bettingState.options.filter((o) => o.id.startsWith('predict_'));
+      const choice = choices[Math.floor(Math.random() * choices.length)];
+      const predict = predicts[Math.floor(Math.random() * predicts.length)];
+      if (choice && predict) {
+        placeBet(bettingState, player.id, predict.id, minBet, player.chips, choice.id);
+      }
+    } else {
+      const validOptions = bettingState.options.filter((o) => !o.id.startsWith('choice_'));
+      const option = validOptions[Math.floor(Math.random() * validOptions.length)];
+      if (option) {
+        placeBet(bettingState, player.id, option.id, minBet, player.chips);
+      }
+    }
+  }
+
   gs.phase = 'betting_reveal';
   emitPhaseChange(io, roomId, 'betting_reveal');
 
@@ -256,10 +278,13 @@ function startAuctionRound(io: TypedServer, roomId: string): void {
 function scheduleAutoReadyForBots(io: TypedServer, roomId: string): void {
   const game = activeGames.get(roomId);
   if (!game) return;
-  const bots = game.room.players.filter((p: Player) => p.id.startsWith('bot_') && p.isConnected);
-  for (const bot of bots) {
+  // 機器人 + 斷線玩家都自動準備，避免卡住流程
+  const autoReadyPlayers = game.room.players.filter(
+    (p: Player) => (p.id.startsWith('bot_') && p.isConnected) || !p.isConnected,
+  );
+  for (const player of autoReadyPlayers) {
     setTimeout(() => {
-      handleRoundReady(io, roomId, bot.id);
+      handleRoundReady(io, roomId, player.id);
     }, 800 + Math.random() * 1200);
   }
 }
@@ -271,6 +296,12 @@ function resolveAuctionRound(io: TypedServer, roomId: string): void {
   const { room, auctionBoxes, playerShields } = game;
   const gs = room.gameState!;
   const auctionState = gs.auctionState!;
+
+  // 未出價玩家（斷線或超時）自動放棄（bid 0）
+  for (const player of room.players) {
+    if (auctionState.playerBids[player.id] !== undefined || player.chips === 0) continue;
+    auctionState.playerBids[player.id] = 0;
+  }
 
   gs.phase = 'auction_reveal';
   emitPhaseChange(io, roomId, 'auction_reveal');
