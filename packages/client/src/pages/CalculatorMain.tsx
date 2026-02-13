@@ -30,12 +30,14 @@ export default function CalculatorMain() {
   if (!room) return null;
 
   const me = room.players.find((p) => p.id === playerId);
+  const myChips = me?.chips ?? 0;
   const isHost = room.hostId === playerId;
   const connectedPlayers = room.players.filter((p) => p.isConnected);
   const otherPlayers = connectedPlayers.filter((p) => p.id !== playerId);
 
   const handleTransfer = () => {
     if (!selectedTarget || amount <= 0) return;
+    if (amount > myChips) return;
     getSocket().emit('adjustChips', selectedTarget, amount, note || undefined);
     setAmount(0);
     setNote('');
@@ -207,17 +209,27 @@ export default function CalculatorMain() {
 
               {/* My bet input (if not locked) */}
               {!iLocked ? (
+                myChips <= 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-4xl mb-2">🏳️</p>
+                    <p className="text-red-400 font-bold">籌碼不足，無法下注</p>
+                    <p className="text-gray-500 text-sm mt-1">餘額為 0，請先儲值</p>
+                  </div>
+                ) : (
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">我的下注金額</p>
+                    <p className="text-xs text-gray-500 mb-2">我的下注金額（上限 🪙{myChips}）</p>
                     <div className="grid grid-cols-4 gap-2">
                       {BET_PRESETS.map((val) => (
                         <button
                           key={val}
                           onClick={() => setBetAmount(val)}
+                          disabled={val > myChips}
                           className={`py-2 rounded-lg text-sm font-bold transition-all active:scale-95 ${
                             betAmount === val
                               ? 'bg-orange-500/20 border border-orange-500/50 text-orange-400'
+                              : val > myChips
+                              ? 'bg-secondary border border-gray-700 text-gray-600 opacity-40 cursor-not-allowed'
                               : 'bg-secondary border border-gray-700 text-gray-300'
                           }`}
                         >
@@ -229,29 +241,35 @@ export default function CalculatorMain() {
                   <input
                     type="number"
                     min={1}
+                    max={myChips}
                     value={betAmount || ''}
-                    onChange={(e) => setBetAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-full px-3 py-3 bg-secondary border border-gray-700 rounded-xl
+                    onChange={(e) => setBetAmount(Math.min(myChips, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className={`w-full px-3 py-3 bg-secondary border rounded-xl
                       text-white text-lg text-center
-                      focus:outline-none focus:border-orange-500 transition-colors"
+                      focus:outline-none transition-colors ${
+                        betAmount > myChips ? 'border-red-500' : 'border-gray-700 focus:border-orange-500'
+                      }`}
                     placeholder="自訂金額"
                   />
+                  {betAmount > myChips && (
+                    <p className="text-red-400 text-xs text-center">超過餘額上限 🪙{myChips}</p>
+                  )}
                   <div className="flex gap-2">
                     {!myBet ? (
                       <button
                         onClick={handlePlaceBet}
-                        disabled={betAmount <= 0}
+                        disabled={betAmount <= 0 || betAmount > myChips}
                         className="flex-1 py-3 rounded-xl text-base font-bold transition-all active:scale-95
                           bg-gradient-to-r from-orange-500/80 to-orange-400 text-white
                           disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {betAmount <= 0 ? '輸入金額' : `下注 🪙${betAmount}`}
+                        {betAmount <= 0 ? '輸入金額' : betAmount > myChips ? '超過餘額' : `下注 🪙${betAmount}`}
                       </button>
                     ) : (
                       <>
                         <button
                           onClick={handlePlaceBet}
-                          disabled={betAmount <= 0}
+                          disabled={betAmount <= 0 || betAmount > myChips}
                           className="flex-1 py-3 rounded-xl text-base font-bold transition-all active:scale-95
                             bg-secondary border border-orange-500/50 text-orange-400
                             disabled:opacity-40 disabled:cursor-not-allowed"
@@ -269,6 +287,7 @@ export default function CalculatorMain() {
                     )}
                   </div>
                 </div>
+                )
               ) : (
                 <div className="text-center py-4">
                   <p className="text-orange-400 font-bold">🔒 已鎖定 — 下注 🪙{myBet}</p>
@@ -569,13 +588,19 @@ export default function CalculatorMain() {
                 <input
                   type="number"
                   min={1}
+                  max={myChips}
                   value={amount || ''}
                   onChange={(e) => setAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full px-3 py-3 bg-secondary border border-gray-700 rounded-xl
+                  className={`w-full px-3 py-3 bg-secondary border rounded-xl
                     text-white text-lg text-center
-                    focus:outline-none focus:border-gold transition-colors"
+                    focus:outline-none transition-colors ${
+                      amount > myChips ? 'border-red-500' : 'border-gray-700 focus:border-gold'
+                    }`}
                   placeholder="自訂金額"
                 />
+                {amount > myChips && (
+                  <p className="text-red-400 text-xs text-center">超過餘額上限 🪙{myChips}</p>
+                )}
 
                 {/* Note */}
                 <input
@@ -592,13 +617,17 @@ export default function CalculatorMain() {
                 {/* Transfer summary + confirm */}
                 <button
                   onClick={handleTransfer}
-                  disabled={amount <= 0}
+                  disabled={amount <= 0 || amount > myChips || myChips <= 0}
                   className="w-full py-4 rounded-xl text-lg font-bold transition-all active:scale-95
                     bg-gradient-to-r from-gold/80 to-yellow-600 text-primary glow-gold
                     disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {amount <= 0
+                  {myChips <= 0
+                    ? '餘額不足'
+                    : amount <= 0
                     ? '請輸入金額'
+                    : amount > myChips
+                    ? '超過餘額'
                     : `轉 🪙${amount} 給 ${getPlayerName(selectedTarget)}`}
                 </button>
               </motion.div>

@@ -74,6 +74,9 @@ export function adjustPlayerChips(
   if (!from || !target) return null;
   if (fromSocketId === targetPlayerId) return null;
 
+  // 餘額檢查：不能轉超過自身籌碼
+  if (from.chips < amount) return null;
+
   // 轉帳：從自己扣，給對方加
   from.chips -= amount;
   target.chips += amount;
@@ -152,6 +155,10 @@ export function placeCalcBet(socketId: string, amount: number): CalcBetRound | n
   if (calcState.currentBetRound.status !== 'betting') return null;
   if (!calcPlayerMap.has(socketId)) return null;
   if (amount <= 0) return null;
+
+  // 餘額檢查：不能下注超過自身籌碼
+  const player = calcRoom.players.find((p: Player) => p.id === socketId);
+  if (!player || player.chips <= 0 || amount > player.chips) return null;
 
   // 不能已鎖定後再改
   if (calcState.currentBetRound.lockedPlayers.includes(socketId)) return null;
