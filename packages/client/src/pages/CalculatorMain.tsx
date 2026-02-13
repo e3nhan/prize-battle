@@ -364,27 +364,34 @@ export default function CalculatorMain() {
               {selectedWinners.length > 0 && (
                 <div className="p-3 rounded-xl bg-secondary border border-gray-700 text-sm space-y-1">
                   <p className="text-gray-400 mb-1">結算預覽</p>
-                  <p className="text-gold font-bold">
-                    每位贏家獲得 🪙{Math.floor((pot * multiplier) / selectedWinners.length)}
-                    {multiplier > 1 && <span className="text-orange-400"> ({multiplier}x)</span>}
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    贏家：{selectedWinners.map((id) => getPlayerName(id)).join('、')}
-                  </p>
                   {(() => {
                     const losers = connectedPlayers.filter(
                       (p) => betRound.bets[p.id] !== undefined && !selectedWinners.includes(p.id)
                     );
-                    if (losers.length === 0) return null;
+                    const totalLoserLoss = losers.reduce(
+                      (sum, p) => sum + (betRound.bets[p.id] ?? 0) * multiplier, 0
+                    );
+                    const winPerPerson = Math.floor(totalLoserLoss / selectedWinners.length);
                     return (
-                      <p className={`text-xs ${multiplier > 1 ? 'text-red-400 font-bold' : 'text-gray-500'}`}>
-                        輸家每人扣 🪙
-                        {losers.length > 0 && betRound.bets[losers[0].id] !== undefined
-                          ? betRound.bets[losers[0].id] * multiplier
-                          : '?'}
-                        {multiplier > 1 && ` (×${multiplier}，可為負值)`}
-                        {` — ${losers.map((p) => p.name).join('、')}`}
-                      </p>
+                      <>
+                        <p className="text-gold font-bold">
+                          每位贏家獲得 🪙{winPerPerson}
+                          {multiplier > 1 && <span className="text-orange-400"> ({multiplier}x)</span>}
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          贏家：{selectedWinners.map((id) => getPlayerName(id)).join('、')}
+                        </p>
+                        {losers.length > 0 && (
+                          <p className={`text-xs ${multiplier > 1 ? 'text-red-400 font-bold' : 'text-gray-500'}`}>
+                            輸家每人扣 🪙
+                            {betRound.bets[losers[0].id] !== undefined
+                              ? betRound.bets[losers[0].id] * multiplier
+                              : '?'}
+                            {multiplier > 1 && ` (×${multiplier}，可為負值)`}
+                            {` — ${losers.map((p) => p.name).join('、')}`}
+                          </p>
+                        )}
+                      </>
                     );
                   })()}
                 </div>

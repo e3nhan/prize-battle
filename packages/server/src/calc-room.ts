@@ -197,8 +197,20 @@ export function resolveCalcBet(
   if (![1, 2, 3].includes(multiplier)) return null;
 
   const round = calcState.currentBetRound;
-  const pot = Object.values(round.bets).reduce((sum, v) => sum + v, 0);
-  const winPerPerson = Math.floor((pot * multiplier) / winnerIds.length);
+
+  // 只計算有效 winnerIds（必須是實際下注的人）
+  const validWinnerIds = winnerIds.filter((id) => round.bets[id] !== undefined);
+  if (validWinnerIds.length === 0) return null;
+
+  // 計算輸家總損失（零和：贏家只分到輸家賠的錢）
+  let totalLoserLoss = 0;
+  for (const [playerId, betAmount] of Object.entries(round.bets)) {
+    if (!validWinnerIds.includes(playerId)) {
+      totalLoserLoss += betAmount * multiplier;
+    }
+  }
+  const winPerPerson = Math.floor(totalLoserLoss / validWinnerIds.length);
+
   const newTxs: ChipTransaction[] = [];
   const now = Date.now();
 
@@ -207,11 +219,10 @@ export function resolveCalcBet(
     const player = calcRoom.players.find((p: Player) => p.id === playerId);
     if (!player) continue;
 
-    const isWinner = winnerIds.includes(playerId);
+    const isWinner = validWinnerIds.includes(playerId);
 
     if (isWinner) {
-      const net = winPerPerson - betAmount;
-      player.chips += net;
+      player.chips += winPerPerson;
       newTxs.push({
         id: String(++txCounter),
         type: 'bet_win',
@@ -315,6 +326,19 @@ export function handleCalcReconnect(
   // 房主重連時更新 hostId
   if (calcRoom.hostId === oldId) {
     calcRoom.hostId = socketId;
+  }
+
+  // 投注中重連：將 bets / lockedPlayers 的舊 ID 遷移到新 ID
+  const round = calcState.currentBetRound;
+  if (round) {
+    if (round.bets[oldId] !== undefined) {
+      round.bets[socketId] = round.bets[oldId];
+      delete round.bets[oldId];
+    }
+    const lockIdx = round.lockedPlayers.indexOf(oldId);
+    if (lockIdx !== -1) {
+      round.lockedPlayers[lockIdx] = socketId;
+    }
   }
 
   return { room: calcRoom, state: calcState };
