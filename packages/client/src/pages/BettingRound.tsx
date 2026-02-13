@@ -32,28 +32,7 @@ export default function BettingRound() {
     setSelectedChoice(null);
   }, [bettingState?.roundNumber]);
 
-  if (!bettingState || !room) return null;
-
-  const isGroupPredict = bettingState.type === 'group_predict';
-  const me = room.players.find((p) => p.id === playerId);
-  const myChips = me?.chips ?? 0;
-  const minBet = getMinBet(myChips);
-  const totalPlayers = room.players.filter((p) => p.isConnected).length;
-
-  const handlePlaceBet = () => {
-    if (!selectedOption || hasPlacedBet) return;
-    // group_predict: optionId = predict_N, choiceId = choice_A/B
-    const payload = isGroupPredict && selectedChoice
-      ? { optionId: selectedOption, amount: betAmount, choiceId: selectedChoice }
-      : { optionId: selectedOption, amount: betAmount };
-    getSocket().emit('placeBet', payload);
-    setHasPlacedBet(true);
-    if (navigator.vibrate) navigator.vibrate(50);
-  };
-
-  const myResult = bettingResult?.playerResults[playerId!];
-
-  // Show intro
+  // Show intro (no bettingState needed)
   if (phase === 'betting_intro') {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
@@ -70,8 +49,10 @@ export default function BettingRound() {
     );
   }
 
-  // Briefing：每輪開始說明規則，等所有玩家確認
+  // Briefing：每輪開始說明規則，等所有玩家確認（移到 null guard 前，避免 bettingState 還沒到就被擋住）
   if (phase === 'betting_briefing') {
+    const totalPlayers = room?.players.filter((p) => p.isConnected).length ?? 0;
+    const myChipsNow = room?.players.find((p) => p.id === playerId)?.chips ?? 0;
     const readyCount = confirmedRoundReady.size;
     const handleReady = () => {
       if (hasConfirmedRound) return;
@@ -86,12 +67,14 @@ export default function BettingRound() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm text-center space-y-4"
         >
-          <p className="text-sm text-gray-500">第 {bettingState.roundNumber} / {GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪</p>
-          <h2 className="text-2xl font-black text-gold">{getBetTypeTitle(bettingState.type)}</h2>
-          <p className="text-gray-300 text-base leading-relaxed bg-secondary rounded-xl p-4 border border-gray-700">
-            {getBetTypeDescription(bettingState.type)}
-          </p>
-          <ChipDisplay amount={myChips} size="sm" />
+          <p className="text-sm text-gray-500">第 {bettingState?.roundNumber ?? '?'} / {GAME_CONFIG.TOTAL_BETTING_ROUNDS} 輪</p>
+          <h2 className="text-2xl font-black text-gold">{bettingState ? getBetTypeTitle(bettingState.type) : '準備中...'}</h2>
+          {bettingState && (
+            <p className="text-gray-300 text-base leading-relaxed bg-secondary rounded-xl p-4 border border-gray-700">
+              {getBetTypeDescription(bettingState.type)}
+            </p>
+          )}
+          <ChipDisplay amount={myChipsNow} size="sm" />
 
           {hasConfirmedRound ? (
             <div className="text-center">
@@ -113,6 +96,27 @@ export default function BettingRound() {
       </div>
     );
   }
+
+  if (!bettingState || !room) return null;
+
+  const isGroupPredict = bettingState.type === 'group_predict';
+  const me = room.players.find((p) => p.id === playerId);
+  const myChips = me?.chips ?? 0;
+  const minBet = getMinBet(myChips);
+  const totalPlayers = room.players.filter((p) => p.isConnected).length;
+
+  const handlePlaceBet = () => {
+    if (!selectedOption || hasPlacedBet) return;
+    // group_predict: optionId = predict_N, choiceId = choice_A/B
+    const payload = isGroupPredict && selectedChoice
+      ? { optionId: selectedOption, amount: betAmount, choiceId: selectedChoice }
+      : { optionId: selectedOption, amount: betAmount };
+    getSocket().emit('placeBet', payload);
+    setHasPlacedBet(true);
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
+
+  const myResult = bettingResult?.playerResults[playerId!];
 
   // Show result
   if (phase === 'betting_result' && myResult) {

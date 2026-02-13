@@ -32,19 +32,10 @@ export default function AuctionRound() {
     }
   }, [phase, myChips, hasSubmittedBid]);
 
-  if (!auctionState || !room) return null;
-
-  const confirmedCount = confirmedBids.size;
-  const totalPlayers = room.players.filter((p) => p.isConnected).length;
-
-  const handleSubmitBid = (amount: number) => {
-    getSocket().emit('submitBid', amount);
-    setHasSubmittedBid(true);
-    if (navigator.vibrate) navigator.vibrate(50);
-  };
-
-  // Briefing：每箱拍賣前說明，等所有玩家確認
+  // Briefing：每箱拍賣前說明，等所有玩家確認（移到 null guard 前，避免 auctionState 還沒到就被擋住）
   if (phase === 'auction_briefing') {
+    const totalPlayers = room?.players.filter((p) => p.isConnected).length ?? 0;
+    const myChipsNow = room?.players.find((p) => p.id === playerId)?.chips ?? 0;
     const readyCount = confirmedRoundReady.size;
     const handleReady = () => {
       if (hasConfirmedRound) return;
@@ -60,16 +51,18 @@ export default function AuctionRound() {
           className="w-full max-w-sm text-center space-y-4"
         >
           <p className="text-sm text-gray-500">
-            寶箱 {auctionState.roundNumber} / {GAME_CONFIG.TOTAL_AUCTION_ITEMS}
+            寶箱 {auctionState?.roundNumber ?? '?'} / {GAME_CONFIG.TOTAL_AUCTION_ITEMS}
           </p>
           <p className="text-5xl">📦</p>
-          <h2 className="text-2xl font-black text-gold">{auctionState.currentBox.displayName}</h2>
-          <div className="bg-secondary rounded-xl p-4 border border-gray-700 text-left space-y-2">
-            <p className="text-gray-300 italic">「{auctionState.currentBox.hint}」</p>
-            <p className="text-xs text-gray-500">⚠️ 提示可能為誤導</p>
-          </div>
+          <h2 className="text-2xl font-black text-gold">{auctionState?.currentBox.displayName ?? '準備中...'}</h2>
+          {auctionState && (
+            <div className="bg-secondary rounded-xl p-4 border border-gray-700 text-left space-y-2">
+              <p className="text-gray-300 italic">「{auctionState.currentBox.hint}」</p>
+              <p className="text-xs text-gray-500">⚠️ 提示可能為誤導</p>
+            </div>
+          )}
           <p className="text-sm text-gray-400">最低出價：🪙{GAME_CONFIG.MIN_BID}</p>
-          <ChipDisplay amount={myChips} size="sm" />
+          <ChipDisplay amount={myChipsNow} size="sm" />
 
           {hasConfirmedRound ? (
             <div className="text-center">
@@ -91,6 +84,17 @@ export default function AuctionRound() {
       </div>
     );
   }
+
+  if (!auctionState || !room) return null;
+
+  const confirmedCount = confirmedBids.size;
+  const totalPlayers = room.players.filter((p) => p.isConnected).length;
+
+  const handleSubmitBid = (amount: number) => {
+    getSocket().emit('submitBid', amount);
+    setHasSubmittedBid(true);
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
 
   // Intro
   if (phase === 'auction_intro') {
