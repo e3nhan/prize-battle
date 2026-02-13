@@ -188,24 +188,20 @@ function resolveRouletteBet(state: BettingState, players: Player[]): BetResult {
 }
 
 function resolveCoinMultiplyBet(state: BettingState, players: Player[]): BetResult {
-  const flipResults: Record<string, { won: boolean; animationData: CoinAnimationData }> = {};
-  let firstFlipData: CoinAnimationData | null = null;
+  // 丟一組共用的 3 枚硬幣，所有玩家看同一結果
+  const { flips, animationData } = flipCoins(3);
 
-  for (const [pid, bet] of Object.entries(state.playerBets)) {
+  const playerResults = resolvePoolBetting(state, players, (_pid, bet) => {
     const times = bet.optionId === 'coin_1' ? 1 : bet.optionId === 'coin_2' ? 2 : 3;
-    const { won, animationData } = flipCoins(times);
-    flipResults[pid] = { won, animationData };
-    if (!firstFlipData) firstFlipData = animationData;
-  }
-
-  const playerResults = resolvePoolBetting(state, players, (pid, bet) => {
-    if (!flipResults[pid]?.won) return 0;
-    return bet.optionId === 'coin_1' ? 2 : bet.optionId === 'coin_2' ? 4 : 8;
+    // 只看前 N 枚硬幣是否全部正面
+    const won = flips.slice(0, times).every((f) => f === 'heads');
+    if (!won) return 0;
+    return times === 1 ? 2 : times === 2 ? 4 : 8;
   });
 
   return {
     winningOptionId: 'coin_result',
-    animationData: firstFlipData || { type: 'coin', flips: ['heads'] },
+    animationData,
     playerResults,
   };
 }
