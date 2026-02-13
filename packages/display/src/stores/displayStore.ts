@@ -57,7 +57,17 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
 
   setRoom: (room) => set({ room }),
   setCountdown: (seconds) => set({ countdown: seconds }),
-  setGameState: (state) => set({ gameState: state, countdown: null }),
+  setGameState: (state) => set({
+    gameState: state,
+    phase: state.phase,
+    countdown: null,
+    bettingState: state.bettingState,
+    bettingResult: state.bettingState?.result ?? null,
+    timeLeft: state.bettingState?.timeLeft ?? state.auctionState?.timeLeft ?? 0,
+    auctionState: state.auctionState,
+    auctionResult: state.auctionState?.result ?? null,
+    leaderboard: state.leaderboard,
+  }),
   setPhase: (phase) => set((s) => {
     const updates: Partial<DisplayStore> = { phase };
     if (phase === 'betting_round') {
