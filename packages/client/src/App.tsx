@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from './hooks/useSocket';
 import { useCalcSocket } from './hooks/useCalcSocket';
@@ -16,8 +16,10 @@ import ScratchTracker from './pages/ScratchTracker';
 
 type AppMode = 'home' | 'game' | 'calculator' | 'scratch';
 
-function getInitialMode(): AppMode {
-  return (sessionStorage.getItem('appMode') as AppMode) || 'home';
+function hashToMode(): AppMode {
+  const hash = window.location.hash.replace('#/', '').replace('#', '');
+  if (hash === 'game' || hash === 'calculator' || hash === 'scratch') return hash;
+  return 'home';
 }
 
 function Toast() {
@@ -89,17 +91,21 @@ function CalcApp({ onBack }: { onBack: () => void }) {
 }
 
 export default function App() {
-  const [appMode, setAppMode] = useState<AppMode>(getInitialMode);
+  const [appMode, setAppMode] = useState<AppMode>(hashToMode);
+
+  useEffect(() => {
+    const onHashChange = () => setAppMode(hashToMode());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleSetMode = useCallback((mode: AppMode) => {
-    sessionStorage.setItem('appMode', mode);
-    setAppMode(mode);
+    window.location.hash = `#/${mode}`;
   }, []);
 
   const handleBack = useCallback(() => {
-    sessionStorage.removeItem('appMode');
     sessionStorage.removeItem('playerName');
-    setAppMode('home');
+    window.location.hash = '';
   }, []);
 
   if (appMode === 'home') {
