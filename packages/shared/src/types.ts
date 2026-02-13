@@ -25,7 +25,16 @@ export interface Room {
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 
 // ===== 籌碼計算器 =====
-export type ChipTxType = 'transfer' | 'topup';
+export type ChipTxType = 'transfer' | 'topup' | 'bet_win' | 'bet_lose';
+
+export type CalcBetStatus = 'betting' | 'locked';
+
+export interface CalcBetRound {
+  id: string;
+  status: CalcBetStatus;
+  bets: Record<string, number>;
+  lockedPlayers: string[];
+}
 
 export interface ChipTransaction {
   id: string;
@@ -41,6 +50,7 @@ export interface ChipTransaction {
 
 export interface CalculatorState {
   transactions: ChipTransaction[];
+  currentBetRound: CalcBetRound | null;
 }
 
 // ===== 遊戲狀態 =====

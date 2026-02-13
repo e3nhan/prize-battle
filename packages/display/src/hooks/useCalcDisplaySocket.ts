@@ -37,9 +37,14 @@ export function useCalcDisplaySocket() {
       store.addTransaction(tx, room);
     });
 
+    s.on('calcBetRoundUpdate', (round) => {
+      store.setBetRound(round);
+    });
+
     return () => {
       s.off('calcRoomUpdate');
       s.off('calcChipAdjusted');
+      s.off('calcBetRoundUpdate');
     };
   }, []);
 }

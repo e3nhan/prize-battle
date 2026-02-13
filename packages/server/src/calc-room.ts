@@ -1,10 +1,10 @@
-import type { Room, Player, CalculatorState, ChipTransaction } from '@prize-battle/shared';
+import type { Room, Player, CalculatorState, ChipTransaction, CalcBetRound } from '@prize-battle/shared';
 import { GAME_CONFIG, CALC_CONFIG } from '@prize-battle/shared';
 
 const CALC_ROOM_ID = 'CALC_MAIN';
 
 let calcRoom: Room | null = null;
-let calcState: CalculatorState = { transactions: [] };
+let calcState: CalculatorState = { transactions: [], currentBetRound: null };
 const calcPlayerMap = new Map<string, string>(); // socketId -> roomId
 let txCounter = 0;
 
@@ -124,6 +124,120 @@ export function topUpChips(
   return { tx, room: calcRoom };
 }
 
+// ===== 投注功能 =====
+let betRoundCounter = 0;
+
+export function startCalcBetRound(): CalcBetRound | null {
+  if (!calcRoom) return null;
+  if (calcState.currentBetRound) return null; // 已有進行中的投注
+
+  const round: CalcBetRound = {
+    id: String(++betRoundCounter),
+    status: 'betting',
+    bets: {},
+    lockedPlayers: [],
+  };
+  calcState.currentBetRound = round;
+  return round;
+}
+
+export function placeCalcBet(socketId: string, amount: number): CalcBetRound | null {
+  if (!calcRoom || !calcState.currentBetRound) return null;
+  if (calcState.currentBetRound.status !== 'betting') return null;
+  if (!calcPlayerMap.has(socketId)) return null;
+  if (amount <= 0) return null;
+
+  // 不能已鎖定後再改
+  if (calcState.currentBetRound.lockedPlayers.includes(socketId)) return null;
+
+  calcState.currentBetRound.bets[socketId] = amount;
+  return calcState.currentBetRound;
+}
+
+export function lockCalcBet(socketId: string): CalcBetRound | null {
+  if (!calcRoom || !calcState.currentBetRound) return null;
+  if (calcState.currentBetRound.status !== 'betting') return null;
+  if (!calcState.currentBetRound.bets[socketId]) return null;
+  if (calcState.currentBetRound.lockedPlayers.includes(socketId)) return null;
+
+  calcState.currentBetRound.lockedPlayers.push(socketId);
+
+  // 所有已下注的人都鎖定了 → status='locked'
+  const bettors = Object.keys(calcState.currentBetRound.bets);
+  if (bettors.every((id) => calcState.currentBetRound!.lockedPlayers.includes(id))) {
+    calcState.currentBetRound.status = 'locked';
+  }
+
+  return calcState.currentBetRound;
+}
+
+export function resolveCalcBet(
+  winnerIds: string[],
+  multiplier: number,
+): { transactions: ChipTransaction[]; room: Room } | null {
+  if (!calcRoom || !calcState.currentBetRound) return null;
+  if (calcState.currentBetRound.status !== 'locked') return null;
+  if (winnerIds.length === 0) return null;
+  if (![1, 2, 3].includes(multiplier)) return null;
+
+  const round = calcState.currentBetRound;
+  const pot = Object.values(round.bets).reduce((sum, v) => sum + v, 0);
+  const winPerPerson = Math.floor((pot * multiplier) / winnerIds.length);
+  const newTxs: ChipTransaction[] = [];
+  const now = Date.now();
+
+  // 處理每位參與者
+  for (const [playerId, betAmount] of Object.entries(round.bets)) {
+    const player = calcRoom.players.find((p: Player) => p.id === playerId);
+    if (!player) continue;
+
+    const isWinner = winnerIds.includes(playerId);
+
+    if (isWinner) {
+      const net = winPerPerson - betAmount;
+      player.chips += net;
+      newTxs.push({
+        id: String(++txCounter),
+        type: 'bet_win',
+        fromPlayerId: playerId,
+        targetPlayerId: playerId,
+        amount: winPerPerson,
+        fromNewBalance: player.chips,
+        toNewBalance: player.chips,
+        timestamp: now,
+        note: `投注贏 (下注${betAmount}, 獲得${winPerPerson})`,
+      });
+    } else {
+      player.chips -= betAmount;
+      newTxs.push({
+        id: String(++txCounter),
+        type: 'bet_lose',
+        fromPlayerId: playerId,
+        targetPlayerId: playerId,
+        amount: betAmount,
+        fromNewBalance: player.chips,
+        toNewBalance: player.chips,
+        timestamp: now,
+        note: `投注輸 (下注${betAmount})`,
+      });
+    }
+  }
+
+  calcState.transactions.push(...newTxs);
+  if (calcState.transactions.length > CALC_CONFIG.MAX_TRANSACTIONS) {
+    calcState.transactions = calcState.transactions.slice(-CALC_CONFIG.MAX_TRANSACTIONS);
+  }
+
+  calcState.currentBetRound = null;
+  return { transactions: newTxs, room: calcRoom };
+}
+
+export function cancelCalcBetRound(): boolean {
+  if (!calcState.currentBetRound) return false;
+  calcState.currentBetRound = null;
+  return true;
+}
+
 export function handleCalcDisconnect(socketId: string): Room | null {
   if (!calcPlayerMap.has(socketId)) return null;
   calcPlayerMap.delete(socketId);
@@ -144,7 +258,7 @@ export function resetCalcRoom(): { room: Room; state: CalculatorState } {
   for (const player of room.players) {
     player.chips = 0;
   }
-  calcState = { transactions: [] };
+  calcState = { transactions: [], currentBetRound: null };
   txCounter = 0;
   return { room, state: calcState };
 }

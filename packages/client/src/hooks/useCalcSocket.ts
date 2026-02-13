@@ -16,6 +16,10 @@ export function useCalcSocket() {
       store.addTransaction(tx, room);
     });
 
+    s.on('calcBetRoundUpdate', (round) => {
+      store.setBetRound(round);
+    });
+
     s.on('error', (message) => {
       if (message === 'reconnect_failed') {
         sessionStorage.removeItem('playerName');
@@ -43,6 +47,7 @@ export function useCalcSocket() {
     return () => {
       s.off('calcRoomUpdate');
       s.off('calcChipAdjusted');
+      s.off('calcBetRoundUpdate');
       // Don't remove error listener here as game also uses it
     };
   }, []);

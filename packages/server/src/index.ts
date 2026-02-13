@@ -32,6 +32,11 @@ import {
   joinCalcRoom,
   adjustPlayerChips,
   topUpChips,
+  startCalcBetRound,
+  placeCalcBet,
+  lockCalcBet,
+  resolveCalcBet,
+  cancelCalcBetRound,
   handleCalcDisconnect,
   handleCalcReconnect,
   resetCalcRoom,
@@ -274,6 +279,52 @@ io.on('connection', (socket) => {
     }
     io.to(result.room.id).emit('calcChipAdjusted', result.tx, result.room);
     io.to(`display_${result.room.id}`).emit('calcChipAdjusted', result.tx, result.room);
+  });
+
+  // ===== 計算器投注 =====
+  socket.on('startCalcBet', () => {
+    const round = startCalcBetRound();
+    if (!round) { socket.emit('error', '無法發起投注'); return; }
+    const room = getOrCreateCalcRoom();
+    io.to(room.id).emit('calcBetRoundUpdate', round);
+    io.to(`display_${room.id}`).emit('calcBetRoundUpdate', round);
+  });
+
+  socket.on('placeCalcBet', (amount: number) => {
+    const round = placeCalcBet(socket.id, amount);
+    if (!round) { socket.emit('error', '下注失敗'); return; }
+    const room = getOrCreateCalcRoom();
+    io.to(room.id).emit('calcBetRoundUpdate', round);
+    io.to(`display_${room.id}`).emit('calcBetRoundUpdate', round);
+  });
+
+  socket.on('lockCalcBet', () => {
+    const round = lockCalcBet(socket.id);
+    if (!round) { socket.emit('error', '鎖定失敗'); return; }
+    const room = getOrCreateCalcRoom();
+    io.to(room.id).emit('calcBetRoundUpdate', round);
+    io.to(`display_${room.id}`).emit('calcBetRoundUpdate', round);
+  });
+
+  socket.on('resolveCalcBet', (winnerIds: string[], multiplier: number) => {
+    const result = resolveCalcBet(winnerIds, multiplier);
+    if (!result) { socket.emit('error', '結算失敗'); return; }
+    const room = getOrCreateCalcRoom();
+    // 先廣播每筆交易
+    for (const tx of result.transactions) {
+      io.to(room.id).emit('calcChipAdjusted', tx, result.room);
+      io.to(`display_${room.id}`).emit('calcChipAdjusted', tx, result.room);
+    }
+    // 清除投注 round
+    io.to(room.id).emit('calcBetRoundUpdate', null);
+    io.to(`display_${room.id}`).emit('calcBetRoundUpdate', null);
+  });
+
+  socket.on('cancelCalcBet', () => {
+    if (!cancelCalcBetRound()) { socket.emit('error', '取消失敗'); return; }
+    const room = getOrCreateCalcRoom();
+    io.to(room.id).emit('calcBetRoundUpdate', null);
+    io.to(`display_${room.id}`).emit('calcBetRoundUpdate', null);
   });
 
   socket.on('resetCalculator', () => {

@@ -9,6 +9,7 @@ import type {
   LeaderboardEntry,
   CalculatorState,
   ChipTransaction,
+  CalcBetRound,
 } from './types.js';
 
 export interface ServerToClientEvents {
@@ -39,6 +40,7 @@ export interface ServerToClientEvents {
   // 籌碼計算器
   calcRoomUpdate: (room: Room, state: CalculatorState) => void;
   calcChipAdjusted: (tx: ChipTransaction, room: Room) => void;
+  calcBetRoundUpdate: (round: CalcBetRound | null) => void;
 }
 
 export interface ClientToServerEvents {
@@ -75,5 +77,10 @@ export interface ClientToServerEvents {
   joinCalcDisplay: () => void;
   adjustChips: (targetPlayerId: string, amount: number, note?: string) => void;
   topUp: (amount: number) => void;
+  startCalcBet: () => void;
+  placeCalcBet: (amount: number) => void;
+  lockCalcBet: () => void;
+  resolveCalcBet: (winnerIds: string[], multiplier: number) => void;
+  cancelCalcBet: () => void;
   resetCalculator: () => void;
 }

@@ -4,6 +4,7 @@ import { useCalcDisplayStore } from '../stores/calcDisplayStore';
 export default function CalcDisplay() {
   const room = useCalcDisplayStore((s) => s.room);
   const transactions = useCalcDisplayStore((s) => s.transactions);
+  const betRound = useCalcDisplayStore((s) => s.betRound);
 
   if (!room) {
     return (
@@ -26,6 +27,8 @@ export default function CalcDisplay() {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  const pot = betRound ? Object.values(betRound.bets).reduce((s, v) => s + v, 0) : 0;
+
   return (
     <div className="h-screen flex flex-col p-8 bg-primary">
       {/* Header */}
@@ -33,6 +36,58 @@ export default function CalcDisplay() {
         <h1 className="text-4xl font-black text-neon-blue">🧮 籌碼計算器</h1>
         <p className="text-gray-400 mt-1">{players.length} 人在線</p>
       </div>
+
+      {/* Bet Round Banner */}
+      <AnimatePresence>
+        {betRound && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-6 p-5 rounded-2xl bg-orange-500/10 border-2 border-orange-500/30"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-2xl font-black text-orange-400">🎲 投注進行中</h3>
+              <div className="text-right">
+                <p className="text-sm text-gray-400">
+                  {betRound.status === 'betting' ? '下注階段' : '等待結算'}
+                </p>
+                <p className="text-3xl font-black text-gold">彩池 🪙{pot}</p>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              {players.map((player) => {
+                const hasBet = betRound.bets[player.id] !== undefined;
+                const locked = betRound.lockedPlayers.includes(player.id);
+                return (
+                  <div
+                    key={player.id}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                      locked
+                        ? 'border-orange-500/50 bg-orange-500/10'
+                        : hasBet
+                        ? 'border-gold/50 bg-gold/5'
+                        : 'border-gray-700 bg-secondary'
+                    }`}
+                  >
+                    <span className="text-xl">{player.avatar}</span>
+                    <span className="font-bold">{player.name}</span>
+                    <span className={`font-bold ${
+                      locked ? 'text-orange-400' : hasBet ? 'text-gold' : 'text-gray-500'
+                    }`}>
+                      {locked
+                        ? `🔒 ${betRound.bets[player.id]}`
+                        : hasBet
+                        ? `🪙 ${betRound.bets[player.id]}`
+                        : '...'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 flex gap-8 overflow-hidden">
         {/* Left: Player Cards */}
@@ -81,6 +136,42 @@ export default function CalcDisplay() {
               <p className="text-center text-gray-600 mt-8">尚無紀錄</p>
             ) : (
               <>
+                {/* Bet records */}
+                {recentTx.some((tx) => tx.type === 'bet_win' || tx.type === 'bet_lose') && (
+                  <div>
+                    <p className="text-sm font-bold text-orange-400 mb-2 flex items-center gap-1.5">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-orange-400" />
+                      投注紀錄
+                    </p>
+                    <div className="space-y-2">
+                      {recentTx.filter((tx) => tx.type === 'bet_win' || tx.type === 'bet_lose').map((tx) => (
+                        <motion.div
+                          key={tx.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`flex items-center gap-3 p-3 rounded-xl ${
+                            tx.type === 'bet_win'
+                              ? 'bg-green-500/10 border border-green-500/20'
+                              : 'bg-red-500/10 border border-red-500/20'
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm">
+                              {getPlayerAvatar(tx.fromPlayerId)} {getPlayerName(tx.fromPlayerId)}
+                            </p>
+                          </div>
+                          <span className={`text-lg font-bold whitespace-nowrap ${
+                            tx.type === 'bet_win' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {tx.type === 'bet_win' ? '+' : '-'}🪙 {tx.amount}
+                          </span>
+                          <span className="text-xs text-gray-600 whitespace-nowrap">{formatTime(tx.timestamp)}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Top-up records */}
                 {recentTx.some((tx) => tx.type === 'topup') && (
                   <div>
