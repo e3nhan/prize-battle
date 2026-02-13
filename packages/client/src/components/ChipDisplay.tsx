@@ -14,7 +14,7 @@ export default function ChipDisplay({ amount, size = 'md', showChange }: ChipDis
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-2">
       <span className="text-gold">🪙</span>
       <motion.span
         key={amount}

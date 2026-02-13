@@ -188,7 +188,9 @@ export default function BettingRound() {
               )}
             </div>
           )}
-          <ChipDisplay amount={myResult.newChips} size="lg" />
+          <div className="mt-3">
+            <ChipDisplay amount={myResult.newChips} size="lg" />
+          </div>
         </motion.div>
       </div>
     );
