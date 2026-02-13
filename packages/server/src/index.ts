@@ -13,6 +13,7 @@ import {
   setPlayerUnready,
   isAllReady,
   handleDisconnect,
+  handleReconnect,
   getRoomBySocketId,
   getPlayerRoomId,
   getMainRoom,
@@ -31,6 +32,7 @@ import {
   joinCalcRoom,
   adjustPlayerChips,
   handleCalcDisconnect,
+  handleCalcReconnect,
   resetCalcRoom,
   getCalcState,
 } from './calc-room.js';
@@ -88,6 +90,42 @@ io.on('connection', (socket) => {
     } catch (err: any) {
       socket.emit('error', err.message);
     }
+  });
+
+  // 重新連線（遊戲）
+  socket.on('reconnectGame', (playerName: string) => {
+    const room = handleReconnect(socket.id, playerName);
+    if (!room) {
+      socket.emit('error', 'reconnect_failed');
+      return;
+    }
+    socket.join(room.id);
+    socket.emit('roomUpdate', room);
+    if (room.gameState) {
+      socket.emit('gameStart', room.gameState);
+      if (room.gameState.phase) {
+        socket.emit('phaseChange', room.gameState.phase);
+      }
+    }
+    // 通知其他人此玩家已重連
+    io.to(room.id).emit('roomUpdate', room);
+    io.to(`display_${room.id}`).emit('roomUpdate', room);
+    console.log(`${playerName} reconnected to game`);
+  });
+
+  // 重新連線（計算器）
+  socket.on('reconnectCalc', (playerName: string) => {
+    const result = handleCalcReconnect(socket.id, playerName);
+    if (!result) {
+      socket.emit('error', 'reconnect_failed');
+      return;
+    }
+    socket.join(result.room.id);
+    socket.emit('calcRoomUpdate', result.room, result.state);
+    // 通知其他人此玩家已重連
+    io.to(result.room.id).emit('calcRoomUpdate', result.room, result.state);
+    io.to(`display_${result.room.id}`).emit('calcRoomUpdate', result.room, result.state);
+    console.log(`${playerName} reconnected to calculator`);
   });
 
   socket.on('playerReady', () => {

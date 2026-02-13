@@ -66,6 +66,10 @@ export interface ClientToServerEvents {
   // 重新開始
   playAgain: () => void;
 
+  // 重新連線
+  reconnectGame: (playerName: string) => void;
+  reconnectCalc: (playerName: string) => void;
+
   // 籌碼計算器
   joinCalculator: (playerName: string, initialChips?: number) => void;
   joinCalcDisplay: () => void;

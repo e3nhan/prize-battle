@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useCalcSocket } from './hooks/useCalcSocket';
 import { useGameStore } from './stores/gameStore';
@@ -11,6 +11,12 @@ import AuctionRound from './pages/AuctionRound';
 import Result from './pages/Result';
 import CalculatorJoin from './pages/CalculatorJoin';
 import CalculatorMain from './pages/CalculatorMain';
+
+type AppMode = 'home' | 'game' | 'calculator';
+
+function getInitialMode(): AppMode {
+  return (sessionStorage.getItem('appMode') as AppMode) || 'home';
+}
 
 function GameApp() {
   useSocket();
@@ -61,14 +67,25 @@ function CalcApp({ onBack }: { onBack: () => void }) {
 }
 
 export default function App() {
-  const [appMode, setAppMode] = useState<'home' | 'game' | 'calculator'>('home');
+  const [appMode, setAppMode] = useState<AppMode>(getInitialMode);
+
+  const handleSetMode = useCallback((mode: AppMode) => {
+    sessionStorage.setItem('appMode', mode);
+    setAppMode(mode);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    sessionStorage.removeItem('appMode');
+    sessionStorage.removeItem('playerName');
+    setAppMode('home');
+  }, []);
 
   if (appMode === 'home') {
-    return <HomeScreen onSelectMode={setAppMode} />;
+    return <HomeScreen onSelectMode={handleSetMode} />;
   }
 
   if (appMode === 'calculator') {
-    return <CalcApp onBack={() => setAppMode('home')} />;
+    return <CalcApp onBack={handleBack} />;
   }
 
   return <GameApp />;

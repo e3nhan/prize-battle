@@ -127,3 +127,18 @@ export function getCalcState(): CalculatorState {
 export function isCalcPlayer(socketId: string): boolean {
   return calcPlayerMap.has(socketId);
 }
+
+export function handleCalcReconnect(
+  socketId: string,
+  playerName: string,
+): { room: Room; state: CalculatorState } | null {
+  if (!calcRoom) return null;
+
+  const player = calcRoom.players.find((p: Player) => p.name === playerName);
+  if (!player) return null;
+
+  player.id = socketId;
+  player.isConnected = true;
+  calcPlayerMap.set(socketId, CALC_ROOM_ID);
+  return { room: calcRoom, state: calcState };
+}
