@@ -159,6 +159,14 @@ export default function BettingDisplay() {
             </motion.div>
           );
         })()}
+
+        {/* 等待確認人數 */}
+        <div className="flex items-center justify-center gap-3 text-xl mt-6">
+          <span className="text-neon-green font-bold">{confirmedRoundReady.size}</span>
+          <span className="text-gray-500">/</span>
+          <span className="text-gray-400">{room.players.filter((p) => p.isConnected).length}</span>
+          <span className="text-gray-400">人已確認</span>
+        </div>
       </div>
     );
   }

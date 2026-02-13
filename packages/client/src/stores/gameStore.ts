@@ -130,8 +130,9 @@ export const useGameStore = create<GameStore>((set) => ({
     if (phase === 'final_result') {
       newState.screen = 'result';
     }
-    // 每輪 briefing / auction_intro 開始時重置準備狀態
-    if (phase === 'betting_briefing' || phase === 'auction_briefing' || phase === 'auction_intro') {
+    // 需要 ready-check 的 phase 進入時重置準備狀態
+    if (phase === 'betting_briefing' || phase === 'betting_result' ||
+        phase === 'auction_intro' || phase === 'auction_briefing' || phase === 'auction_result') {
       newState.confirmedRoundReady = new Set();
       newState.hasConfirmedRound = false;
     }

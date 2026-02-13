@@ -181,12 +181,20 @@ export default function AuctionDisplay() {
 
         {/* Result with chip ranking */}
         {phase === 'auction_result' && (
-          <div className="flex-1 flex gap-8">
-            <div className="flex-1 flex items-center justify-center">
-              <BoxOpening result={auctionResult} instant />
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex gap-8">
+              <div className="flex-1 flex items-center justify-center">
+                <BoxOpening result={auctionResult} instant />
+              </div>
+              <div className="w-96">
+                <ChipRanking players={room.players} />
+              </div>
             </div>
-            <div className="w-96">
-              <ChipRanking players={room.players} />
+            <div className="flex items-center justify-center gap-3 text-xl mt-4">
+              <span className="text-neon-green font-bold">{confirmedRoundReady.size}</span>
+              <span className="text-gray-500">/</span>
+              <span className="text-gray-400">{room.players.filter((p) => p.isConnected).length}</span>
+              <span className="text-gray-400">人已確認</span>
             </div>
           </div>
         )}

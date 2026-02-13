@@ -145,12 +145,20 @@ export default function BettingRound() {
   // Show result
   if (phase === 'betting_result' && myResult) {
     const betOption = myBetInfo ? bettingState?.options.find((o) => o.id === myBetInfo.optionId) : null;
+    const resultTotalPlayers = room?.players.filter((p) => p.isConnected).length ?? 0;
+    const resultReadyCount = confirmedRoundReady.size;
+    const handleResultReady = () => {
+      if (hasConfirmedRound) return;
+      getSocket().emit('roundReady');
+      setHasConfirmedRound(true);
+      if (navigator.vibrate) navigator.vibrate(50);
+    };
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="text-center"
+          className="text-center w-full max-w-sm"
         >
           {myResult.won ? (
             <>
@@ -191,6 +199,29 @@ export default function BettingRound() {
           )}
           <div className="mt-3">
             <ChipDisplay amount={myResult.newChips} size="lg" />
+          </div>
+
+          {/* 下一輪準備按鈕 */}
+          <div className="mt-6">
+            {hasConfirmedRound ? (
+              <div className="text-center">
+                <p className="text-base font-bold text-neon-green">✅ 已確認</p>
+                <p className="text-gray-400 text-sm mt-1">等待其他玩家... ({resultReadyCount}/{resultTotalPlayers})</p>
+              </div>
+            ) : (
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleResultReady}
+                className="w-full py-3 rounded-xl text-lg font-bold
+                  bg-gradient-to-r from-gold/80 to-yellow-600 text-primary
+                  active:scale-95 glow-gold"
+              >
+                繼續下一輪
+              </motion.button>
+            )}
           </div>
         </motion.div>
       </div>

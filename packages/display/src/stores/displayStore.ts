@@ -81,7 +81,8 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
   })),
   setPhase: (phase) => set((s) => {
     const updates: Partial<DisplayStore> = { phase };
-    if (phase === 'betting_briefing' || phase === 'auction_briefing' || phase === 'auction_intro') {
+    if (phase === 'betting_briefing' || phase === 'betting_result' ||
+        phase === 'auction_intro' || phase === 'auction_briefing' || phase === 'auction_result') {
       updates.confirmedRoundReady = new Set();
     }
     if (phase === 'betting_round') {

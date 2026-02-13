@@ -156,9 +156,11 @@ function resolveBettingRound(io: TypedServer, roomId: string): void {
       gs.phase = 'betting_result';
       emitPhaseChange(io, roomId, 'betting_result');
 
-      setTimeout(() => {
-        startNextBettingRound(io, roomId);
-      }, GAME_CONFIG.RESULT_DISPLAY_TIME * 1000);
+      // 等待所有玩家確認結果後才進入下一輪
+      game.roundReadyPlayers = new Set();
+      if (game.roundReadyTimeout) clearTimeout(game.roundReadyTimeout);
+      scheduleAutoReadyForBots(io, roomId);
+      game.roundReadyTimeout = setTimeout(() => startNextBettingRound(io, roomId), 60000);
     }, GAME_CONFIG.REVEAL_TIME * 1000);
   }, 1000);
 }
@@ -278,9 +280,11 @@ function resolveAuctionRound(io: TypedServer, roomId: string): void {
       gs.phase = 'auction_result';
       emitPhaseChange(io, roomId, 'auction_result');
 
-      setTimeout(() => {
-        startNextAuctionRound(io, roomId);
-      }, GAME_CONFIG.RESULT_DISPLAY_TIME * 1000);
+      // 等待所有玩家確認結果後才進入下一輪
+      game.roundReadyPlayers = new Set();
+      if (game.roundReadyTimeout) clearTimeout(game.roundReadyTimeout);
+      scheduleAutoReadyForBots(io, roomId);
+      game.roundReadyTimeout = setTimeout(() => startNextAuctionRound(io, roomId), 60000);
     }, GAME_CONFIG.REVEAL_TIME * 1000);
   }, 1000);
 }
@@ -422,29 +426,44 @@ export function handleRoundReady(io: TypedServer, roomId: string, playerId: stri
   const { room } = game;
   const gs = room.gameState;
   if (!gs) return;
-  if (gs.phase !== 'betting_briefing' && gs.phase !== 'auction_briefing' && gs.phase !== 'auction_intro') return;
+  const readyPhases: GamePhase[] = [
+    'betting_briefing', 'betting_result',
+    'auction_intro', 'auction_briefing', 'auction_result',
+  ];
+  if (!readyPhases.includes(gs.phase)) return;
   if (game.roundReadyPlayers.has(playerId)) return;
 
   game.roundReadyPlayers.add(playerId);
   io.to(roomId).emit('playerRoundReady', playerId);
   io.to(`display_${roomId}`).emit('playerRoundReady', playerId);
 
-  // 所有連線玩家都準備好 → 開始
+  // 所有連線玩家都準備好 → 進入下一步
   const allReady = room.players
     .filter((p: Player) => p.isConnected)
     .every((p: Player) => game.roundReadyPlayers.has(p.id));
 
   if (allReady) {
-    if (gs.phase === 'auction_intro') {
-      if (game.roundReadyTimeout) {
-        clearTimeout(game.roundReadyTimeout);
-        game.roundReadyTimeout = null;
-      }
-      startNextAuctionRound(io, roomId);
-    } else if (gs.phase === 'betting_briefing') {
-      startBettingRound(io, roomId);
-    } else {
-      startAuctionRound(io, roomId);
+    if (game.roundReadyTimeout) {
+      clearTimeout(game.roundReadyTimeout);
+      game.roundReadyTimeout = null;
+    }
+
+    switch (gs.phase) {
+      case 'betting_briefing':
+        startBettingRound(io, roomId);
+        break;
+      case 'betting_result':
+        startNextBettingRound(io, roomId);
+        break;
+      case 'auction_intro':
+        startNextAuctionRound(io, roomId);
+        break;
+      case 'auction_briefing':
+        startAuctionRound(io, roomId);
+        break;
+      case 'auction_result':
+        startNextAuctionRound(io, roomId);
+        break;
     }
   }
 }
