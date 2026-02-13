@@ -11,6 +11,9 @@ export interface ScratchType {
   id: string;
   name: string;
   price: number;
+  winRate?: number;         // 官方中獎率 (%)，例如 60 表示 60%
+  jackpot?: number;         // 頭獎金額
+  expectedReturn?: number;  // 官方期望報酬率 (%)，例如 55 表示每花 100 預期拿回 55
 }
 
 export interface ScratchRecord {
