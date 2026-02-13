@@ -317,14 +317,30 @@ function HistoryTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => v
 
 // ===== 統計 Tab =====
 function StatsTab({ data }: { data: ScratchData }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
   const typeMap = Object.fromEntries(data.scratchTypes.map((t) => [t.id, t]));
 
-  // 每人統計
+  // 每人統計（含詳細資料）
   const personStats = data.people.map((p) => {
     const records = data.records.filter((r) => r.person === p);
     const spent = records.reduce((sum, r) => sum + (typeMap[r.scratchTypeId]?.price ?? 0), 0);
     const won = records.reduce((sum, r) => sum + r.prize, 0);
-    return { person: p, count: records.length, spent, won, net: won - spent };
+    const winCount = records.filter((r) => r.prize > 0).length;
+    const maxPrize = records.length > 0 ? Math.max(...records.map((r) => r.prize)) : 0;
+    const roi = spent > 0 ? ((won - spent) / spent) * 100 : 0;
+
+    // 各種類明細
+    const byType = data.scratchTypes
+      .map((t) => {
+        const tRecords = records.filter((r) => r.scratchTypeId === t.id);
+        if (tRecords.length === 0) return null;
+        const tSpent = tRecords.length * t.price;
+        const tWon = tRecords.reduce((sum, r) => sum + r.prize, 0);
+        return { type: t, count: tRecords.length, spent: tSpent, won: tWon, net: tWon - tSpent };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    return { person: p, count: records.length, spent, won, net: won - spent, winCount, maxPrize, roi, byType };
   });
 
   // 每種刮刮樂統計
@@ -356,20 +372,111 @@ function StatsTab({ data }: { data: ScratchData }) {
       <div>
         <h3 className="text-sm text-gray-400 mb-2 font-bold">個人統計</h3>
         <div className="space-y-2">
-          {personStats.map((s) => (
-            <div key={s.person} className="flex items-center justify-between p-3 rounded-xl bg-secondary">
-              <div>
-                <span className="font-bold text-white">{s.person}</span>
-                <span className="text-sm text-gray-500 ml-2">{s.count} 張</span>
+          {personStats.map((s) => {
+            const isOpen = expanded === s.person;
+            return (
+              <div key={s.person} className="rounded-xl bg-secondary overflow-hidden">
+                {/* 摘要列 */}
+                <button
+                  onClick={() => setExpanded(isOpen ? null : s.person)}
+                  className="w-full flex items-center justify-between p-3 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{s.person}</span>
+                    <span className="text-sm text-gray-500">{s.count} 張</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-bold ${s.net >= 0 ? 'text-neon-green' : 'text-accent'}`}>
+                      {s.net >= 0 ? '+' : ''}{s.net}
+                    </span>
+                    <span className={`text-gray-500 text-sm transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                      ▾
+                    </span>
+                  </div>
+                </button>
+
+                {/* 展開詳細 */}
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
+                        {/* 花費 / 中獎 / 損益 */}
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-gray-500">花費</p>
+                            <p className="text-sm font-bold text-white">${s.spent}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-gray-500">中獎</p>
+                            <p className="text-sm font-bold text-gold">${s.won}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-gray-500">損益</p>
+                            <p className={`text-sm font-bold ${s.net >= 0 ? 'text-neon-green' : 'text-accent'}`}>
+                              {s.net >= 0 ? '+' : ''}{s.net}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 中獎率 / 最大獎 / ROI */}
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-gray-500">中獎率</p>
+                            <p className="text-sm font-bold text-white">
+                              {s.count > 0 ? Math.round((s.winCount / s.count) * 100) : 0}%
+                            </p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-gray-500">最大獎</p>
+                            <p className="text-sm font-bold text-gold">${s.maxPrize}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-gray-500">ROI</p>
+                            <p className={`text-sm font-bold ${s.roi >= 0 ? 'text-neon-green' : 'text-accent'}`}>
+                              {s.roi >= 0 ? '+' : ''}{s.roi.toFixed(0)}%
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 各種類明細 */}
+                        {s.byType.length > 0 && (
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1.5">各種類明細</p>
+                            <div className="space-y-1">
+                              {s.byType.map((bt) => (
+                                <div
+                                  key={bt.type.id}
+                                  className="flex items-center justify-between text-sm px-2 py-1.5 rounded-lg bg-white/5"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white">{bt.type.name}</span>
+                                    <span className="text-xs text-gray-500">×{bt.count}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs">
+                                    <span className="text-gray-400">花${bt.spent}</span>
+                                    <span className="text-gold">中${bt.won}</span>
+                                    <span className={bt.net >= 0 ? 'text-neon-green font-bold' : 'text-accent font-bold'}>
+                                      {bt.net >= 0 ? '+' : ''}{bt.net}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              <div className="text-right">
-                <span className={`font-bold ${s.net >= 0 ? 'text-neon-green' : 'text-accent'}`}>
-                  {s.net >= 0 ? '+' : ''}{s.net}
-                </span>
-                <div className="text-xs text-gray-500">花 ${s.spent} / 中 ${s.won}</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
