@@ -20,6 +20,7 @@ export interface Room {
   status: RoomStatus;
   gameState: GameState | null;
   createdAt: number;
+  hostId?: string;
 }
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';

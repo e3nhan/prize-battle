@@ -328,9 +328,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('resetCalculator', () => {
-    const { room, state } = resetCalcRoom();
-    io.to(room.id).emit('calcRoomUpdate', room, state);
-    io.to(`display_${room.id}`).emit('calcRoomUpdate', room, state);
+    const result = resetCalcRoom(socket.id);
+    if (!result) {
+      socket.emit('error', '只有房主可以關閉房間');
+      return;
+    }
+    io.to(result.room.id).emit('calcRoomUpdate', result.room, result.state);
+    io.to(`display_${result.room.id}`).emit('calcRoomUpdate', result.room, result.state);
   });
 
   socket.on('disconnect', () => {

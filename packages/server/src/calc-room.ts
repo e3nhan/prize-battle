@@ -50,6 +50,12 @@ export function joinCalcRoom(
 
   room.players.push(player);
   calcPlayerMap.set(socketId, room.id);
+
+  // 第一個加入的人是房主
+  if (!room.hostId) {
+    room.hostId = socketId;
+  }
+
   return { room, state: calcState };
 }
 
@@ -252,15 +258,18 @@ export function handleCalcDisconnect(socketId: string): Room | null {
   return calcRoom;
 }
 
-export function resetCalcRoom(): { room: Room; state: CalculatorState } {
-  const room = getOrCreateCalcRoom();
-  room.players = room.players.filter((p: Player) => p.isConnected);
-  for (const player of room.players) {
-    player.chips = 0;
-  }
+export function resetCalcRoom(socketId: string): { room: Room; state: CalculatorState } | null {
+  if (!calcRoom) return null;
+  if (calcRoom.hostId !== socketId) return null;
+
+  // 完全重置：清除所有玩家和狀態
+  calcRoom.players = [];
+  calcRoom.hostId = undefined;
+  calcPlayerMap.clear();
   calcState = { transactions: [], currentBetRound: null };
   txCounter = 0;
-  return { room, state: calcState };
+  betRoundCounter = 0;
+  return { room: calcRoom, state: calcState };
 }
 
 export function getCalcRoom(): Room | undefined {
@@ -284,8 +293,15 @@ export function handleCalcReconnect(
   const player = calcRoom.players.find((p: Player) => p.name === playerName);
   if (!player) return null;
 
+  const oldId = player.id;
   player.id = socketId;
   player.isConnected = true;
   calcPlayerMap.set(socketId, CALC_ROOM_ID);
+
+  // 房主重連時更新 hostId
+  if (calcRoom.hostId === oldId) {
+    calcRoom.hostId = socketId;
+  }
+
   return { room: calcRoom, state: calcState };
 }

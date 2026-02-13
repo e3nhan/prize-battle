@@ -104,7 +104,12 @@ export default function CalcDisplay() {
                   className="p-6 rounded-2xl border border-gray-700 bg-secondary text-center"
                 >
                   <span className="text-4xl">{player.avatar}</span>
-                  <p className="font-bold text-lg mt-2">{player.name}</p>
+                  <div className="flex items-center justify-center gap-1.5 mt-2">
+                    <p className="font-bold text-lg">{player.name}</p>
+                    {player.id === room.hostId && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gold/20 text-gold font-bold">房主</span>
+                    )}
+                  </div>
                   <motion.p
                     key={player.chips}
                     initial={{ scale: 1.3, color: '#ffd700' }}

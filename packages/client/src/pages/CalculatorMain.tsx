@@ -30,6 +30,7 @@ export default function CalculatorMain() {
   if (!room) return null;
 
   const me = room.players.find((p) => p.id === playerId);
+  const isHost = room.hostId === playerId;
   const connectedPlayers = room.players.filter((p) => p.isConnected);
   const otherPlayers = connectedPlayers.filter((p) => p.id !== playerId);
 
@@ -107,13 +108,32 @@ export default function CalculatorMain() {
     <div className="h-full flex flex-col p-4">
       {/* Header */}
       <div className="text-center mb-3">
-        <h2 className="text-lg font-bold text-neon-blue">🧮 籌碼計算器</h2>
+        <div className="flex items-center justify-center gap-2">
+          <h2 className="text-lg font-bold text-neon-blue">🧮 籌碼計算器</h2>
+          {isHost && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gold/20 text-gold font-bold">房主</span>
+          )}
+        </div>
         {me && (
           <div className="mt-1">
             <span className="text-sm text-gray-400">{me.avatar} {me.name}</span>
             <p className="text-2xl font-black text-gold">🪙 {me.chips}</p>
             <p className="text-xs text-gray-500">初始預算 {me.buyIn}</p>
           </div>
+        )}
+        {isHost && (
+          <button
+            onClick={() => {
+              if (confirm('確定要關閉房間？所有人將被踢出。')) {
+                getSocket().emit('resetCalculator');
+              }
+            }}
+            className="mt-2 px-4 py-1.5 rounded-lg text-xs font-bold
+              bg-red-500/10 text-red-400 border border-red-500/30
+              active:scale-95 transition-all"
+          >
+            關閉房間
+          </button>
         )}
       </div>
 

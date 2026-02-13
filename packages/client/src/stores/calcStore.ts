@@ -34,12 +34,25 @@ export const useCalcStore = create<CalcStore>((set) => ({
   setScreen: (screen) => set({ screen }),
   setPlayerId: (id) => set({ playerId: id }),
   setPlayerName: (name) => set({ playerName: name }),
-  setRoomAndState: (room, state) => set({
-    room,
-    transactions: state.transactions,
-    betRound: state.currentBetRound,
-    screen: 'main',
-    error: null,
+  setRoomAndState: (room, state) => set((s) => {
+    // 房間被重置（自己不在玩家列表中）→ 回到加入頁
+    const stillIn = room.players.some((p) => p.id === s.playerId);
+    if (!stillIn) {
+      return {
+        room: null,
+        transactions: [],
+        betRound: null,
+        screen: 'join',
+        error: null,
+      };
+    }
+    return {
+      room,
+      transactions: state.transactions,
+      betRound: state.currentBetRound,
+      screen: 'main',
+      error: null,
+    };
   }),
   addTransaction: (tx, room) => set((s) => ({
     room,
