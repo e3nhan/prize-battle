@@ -12,8 +12,8 @@ export default function HomeScreen({ onSelectMode }: HomeScreenProps) {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-10"
       >
-        <h1 className="text-4xl font-black text-gold mb-2">🎰 獎金爭奪戰</h1>
-        <p className="text-gray-400">Prize Battle</p>
+        <h1 className="text-4xl font-black text-gold mb-2">🎲 119 遊戲中心</h1>
+        <p className="text-gray-400">119 Game Center</p>
       </motion.div>
 
       <motion.div
@@ -27,7 +27,7 @@ export default function HomeScreen({ onSelectMode }: HomeScreenProps) {
           className="w-full py-6 rounded-xl text-xl font-bold transition-all active:scale-95
             bg-gradient-to-r from-gold/80 to-yellow-600 text-primary glow-gold"
         >
-          🎮 開始遊戲
+          🎰 獎金爭奪戰
         </button>
 
         <button
