@@ -88,6 +88,16 @@ export function useSocket(): TypedSocket {
       store.setLeaderboard(leaderboard);
     });
 
+    // 斷線重連提示
+    s.io.on('reconnect', () => {
+      store.showToast('已重新連線');
+      const name = sessionStorage.getItem('playerName');
+      if (name && sessionStorage.getItem('appMode') === 'game') {
+        store.setPlayerId(s.id!);
+        s.emit('reconnectGame', name);
+      }
+    });
+
     // 頁面重整後自動重連
     const savedName = sessionStorage.getItem('playerName');
     const appMode = sessionStorage.getItem('appMode');
@@ -119,6 +129,7 @@ export function useSocket(): TypedSocket {
       s.off('playerBidConfirmed');
       s.off('auctionResult');
       s.off('finalResult');
+      s.io.off('reconnect');
     };
   }, []);
 

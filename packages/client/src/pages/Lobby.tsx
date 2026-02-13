@@ -16,6 +16,8 @@ export default function Lobby() {
 
   const hasBots = room.players.some((p) => p.id.startsWith('bot_'));
   const [showRules, setShowRules] = useState(false);
+  const [showPrizeInfo, setShowPrizeInfo] = useState(false);
+  const totalPrize = room.players.reduce((sum, p) => sum + p.buyIn, 0);
 
   const handleReady = () => {
     getSocket().emit('playerReady');
@@ -41,8 +43,33 @@ export default function Lobby() {
           {room.players.length} / {room.maxPlayers} 人
         </p>
         <p className="text-base font-bold text-neon-green mt-1">
-          🏆 獎金池：{room.players.reduce((sum, p) => sum + p.buyIn, 0)} 元
+          🏆 獎金池：{totalPrize} 元
+          <button
+            onClick={() => setShowPrizeInfo(!showPrizeInfo)}
+            className="ml-1 text-xs text-gray-500 hover:text-gold transition-colors"
+          >
+            ⓘ
+          </button>
         </p>
+        <AnimatePresence>
+          {showPrizeInfo && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 px-3 py-2 rounded-lg bg-secondary border border-gray-700 text-xs text-gray-400 space-y-1">
+                {GAME_CONFIG.PRIZE_DISTRIBUTION.slice(0, room.players.length || 4).map((pct, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span>第{i + 1}名</span>
+                    <span className="text-gold">{Math.round(pct * 100)}% = {Math.round(totalPrize * pct)} 元</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Player list */}

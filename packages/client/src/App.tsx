@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from './hooks/useSocket';
 import { useCalcSocket } from './hooks/useCalcSocket';
 import { useGameStore } from './stores/gameStore';
@@ -16,6 +17,26 @@ type AppMode = 'home' | 'game' | 'calculator';
 
 function getInitialMode(): AppMode {
   return (sessionStorage.getItem('appMode') as AppMode) || 'home';
+}
+
+function Toast() {
+  const toast = useGameStore((s) => s.toast);
+  return (
+    <AnimatePresence>
+      {toast && (
+        <motion.div
+          initial={{ opacity: 0, y: -40 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -40 }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl
+            bg-neon-green/20 border border-neon-green/40 text-neon-green text-sm font-bold
+            backdrop-blur-sm shadow-lg"
+        >
+          {toast}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 function GameApp({ onBack }: { onBack: () => void }) {
@@ -88,5 +109,10 @@ export default function App() {
     return <CalcApp onBack={handleBack} />;
   }
 
-  return <GameApp onBack={handleBack} />;
+  return (
+    <>
+      <Toast />
+      <GameApp onBack={handleBack} />
+    </>
+  );
 }

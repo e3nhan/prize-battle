@@ -18,6 +18,7 @@ interface GameStore {
   playerId: string | null;
   playerName: string | null;
   error: string | null;
+  toast: string | null;
 
   // Room
   room: Room | null;
@@ -51,6 +52,7 @@ interface GameStore {
   setPlayerId: (id: string) => void;
   setPlayerName: (name: string) => void;
   setError: (error: string | null) => void;
+  showToast: (message: string) => void;
   setRoom: (room: Room) => void;
   setCountdown: (seconds: number) => void;
   setGameState: (state: GameState) => void;
@@ -75,6 +77,7 @@ export const useGameStore = create<GameStore>((set) => ({
   playerId: null,
   playerName: null,
   error: null,
+  toast: null,
   room: null,
   countdown: null,
   gameState: null,
@@ -97,6 +100,10 @@ export const useGameStore = create<GameStore>((set) => ({
   setPlayerId: (id) => set({ playerId: id }),
   setPlayerName: (name) => set({ playerName: name }),
   setError: (error) => set({ error }),
+  showToast: (message) => {
+    set({ toast: message });
+    setTimeout(() => set({ toast: null }), 2500);
+  },
 
   setRoom: (room) => set((state) => {
     const newState: Partial<GameStore> = { room, error: null };
@@ -213,5 +220,6 @@ export const useGameStore = create<GameStore>((set) => ({
     chipsBeforeAuction: 0,
     leaderboard: [],
     error: null,
+    toast: null,
   }),
 }));
