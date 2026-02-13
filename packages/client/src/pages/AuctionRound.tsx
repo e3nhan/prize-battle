@@ -93,19 +93,7 @@ export default function AuctionRound() {
     );
   }
 
-  if (!auctionState || !room) return null;
-
-  const confirmedCount = confirmedBids.size;
-  const totalPlayers = room.players.filter((p) => p.isConnected).length;
-
-  const handleSubmitBid = (amount: number) => {
-    getSocket().emit('submitBid', amount);
-    setHasSubmittedBid(true);
-    setMyBidAmount(amount);
-    if (navigator.vibrate) navigator.vibrate(50);
-  };
-
-  // Intro
+  // Intro（auctionState 尚未送達，必須在 null guard 前處理）
   if (phase === 'auction_intro') {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6">
@@ -128,6 +116,18 @@ export default function AuctionRound() {
       </div>
     );
   }
+
+  if (!auctionState || !room) return null;
+
+  const confirmedCount = confirmedBids.size;
+  const totalPlayers = room.players.filter((p) => p.isConnected).length;
+
+  const handleSubmitBid = (amount: number) => {
+    getSocket().emit('submitBid', amount);
+    setHasSubmittedBid(true);
+    setMyBidAmount(amount);
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
 
   // Result
   if ((phase === 'auction_reveal' || phase === 'auction_result') && auctionResult) {
