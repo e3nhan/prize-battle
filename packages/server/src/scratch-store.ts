@@ -98,7 +98,8 @@ function load(): ScratchData {
         // 補上新欄位（不覆蓋已有值）
         for (const key of Object.keys(def) as (keyof ScratchType)[]) {
           if (existing[key] === undefined && def[key] !== undefined) {
-            (existing as Record<string, unknown>)[key] = def[key];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (existing as any)[key] = def[key];
             changed = true;
           }
         }
