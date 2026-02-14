@@ -81,8 +81,8 @@ export function placeBet(
   return true;
 }
 
-// ===== Zero-sum pool helper =====
-// All bets go into a pool. Winners split the pool by weight. Losers lose their bet.
+// ===== Loser-pool model =====
+// Winners keep their bet and split the loser pool. Winners never lose chips.
 function resolvePoolBetting(
   state: BettingState,
   players: Player[],
@@ -90,7 +90,7 @@ function resolvePoolBetting(
 ): BetResult['playerResults'] {
   const playerResults: BetResult['playerResults'] = {};
 
-  let pool = 0;
+  let loserPool = 0;
   let totalWeight = 0;
   const winnerWeights: Record<string, number> = {};
 
@@ -101,12 +101,13 @@ function resolvePoolBetting(
       continue;
     }
 
-    pool += bet.amount;
     const weight = getWinnerWeight(player.id, bet);
 
     if (weight > 0) {
       winnerWeights[player.id] = weight;
       totalWeight += weight;
+    } else {
+      loserPool += bet.amount;
     }
   }
 
@@ -120,26 +121,25 @@ function resolvePoolBetting(
     return playerResults;
   }
 
-  // Distribute pool to winners by weight
+  // Distribute loserPool to winners by weight
   let distributed = 0;
   const winnerIds = Object.keys(winnerWeights);
 
   for (let i = 0; i < winnerIds.length; i++) {
     const playerId = winnerIds[i];
     const player = players.find((p: Player) => p.id === playerId)!;
-    const bet = state.playerBets[playerId];
 
     let share: number;
     if (i === winnerIds.length - 1) {
-      share = pool - distributed;
+      share = loserPool - distributed;
     } else {
-      share = Math.floor((pool * winnerWeights[playerId]) / totalWeight);
+      share = Math.floor((loserPool * winnerWeights[playerId]) / totalWeight);
     }
     distributed += share;
 
-    const payout = share - bet.amount;
-    player.chips += payout;
-    playerResults[playerId] = { won: true, payout, newChips: player.chips };
+    // payout = share from loser pool (always >= 0)
+    player.chips += share;
+    playerResults[playerId] = { won: true, payout: share, newChips: player.chips };
   }
 
   // Losers
@@ -210,31 +210,38 @@ function applyRoundEvent(state: BettingState, players: Player[], result: BetResu
       const losers = bettorIds.filter((id) => (result.playerResults[id]?.payout ?? 0) < 0);
       if (winners.length === 0 || losers.length === 0) break;
 
-      const pool = bettorIds.reduce((s, id) => s + state.playerBets[id].amount, 0);
-
       // 撤銷原本的籌碼變動
       for (const id of bettorIds) {
         const player = players.find((p: Player) => p.id === id);
         if (!player) continue;
         player.chips -= (result.playerResults[id]?.payout ?? 0);
       }
-      // 原贏家改為輸（扣下注金額）
+
+      // 原贏家變輸家（賠下注額）→ 他們的下注額組成新的 loserPool
+      let newLoserPool = 0;
       for (const id of winners) {
         const player = players.find((p: Player) => p.id === id)!;
         const betAmount = state.playerBets[id].amount;
         player.chips -= betAmount;
+        newLoserPool += betAmount;
         result.playerResults[id] = { won: false, payout: -betAmount, newChips: player.chips };
       }
-      // 原輸家改為贏（平分彩池）
-      const loserShare = Math.floor(pool / losers.length);
-      for (let i = 0; i < losers.length; i++) {
+
+      // 原輸家變贏家（保本 + 瓜分 newLoserPool）
+      const totalNewWinners = losers.length;
+      let distributed = 0;
+      for (let i = 0; i < totalNewWinners; i++) {
         const id = losers[i];
         const player = players.find((p: Player) => p.id === id)!;
-        const betAmount = state.playerBets[id].amount;
-        const thisShare = i === losers.length - 1 ? pool - loserShare * (losers.length - 1) : loserShare;
-        const payout = thisShare - betAmount;
-        player.chips += payout;
-        result.playerResults[id] = { won: payout > 0, payout, newChips: player.chips };
+        let share: number;
+        if (i === totalNewWinners - 1) {
+          share = newLoserPool - distributed;
+        } else {
+          share = Math.floor(newLoserPool / totalNewWinners);
+        }
+        distributed += share;
+        player.chips += share;
+        result.playerResults[id] = { won: true, payout: share, newChips: player.chips };
       }
       break;
     }

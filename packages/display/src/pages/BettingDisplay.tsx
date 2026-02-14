@@ -138,7 +138,7 @@ export default function BettingDisplay() {
                       className={`p-4 rounded-xl border text-center ${
                         result.payout > 0
                           ? 'border-neon-green/50 bg-neon-green/10'
-                          : result.won && result.payout <= 0
+                          : result.won && result.payout === 0
                             ? 'border-yellow-400/50 bg-yellow-400/10'
                             : result.payout < 0
                               ? 'border-accent/50 bg-accent/10'
@@ -158,12 +158,11 @@ export default function BettingDisplay() {
                       )}
                       <p className={`text-lg font-bold mt-1 ${
                         result.payout > 0 ? 'text-neon-green' :
-                        result.won && result.payout <= 0 ? 'text-yellow-400' :
+                        result.won && result.payout === 0 ? 'text-yellow-400' :
                         result.payout < 0 ? 'text-accent' : 'text-gray-400'
                       }`}>
                         {noWinnerRefund ? '退回' :
                          result.payout > 0 ? `+${result.payout}` :
-                         result.won && result.payout < 0 ? `猜對 ${result.payout}` :
                          result.won && result.payout === 0 ? '猜對 ±0' :
                          `${result.payout}`}
                       </p>
