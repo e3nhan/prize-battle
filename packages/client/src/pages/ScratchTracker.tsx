@@ -342,9 +342,42 @@ function HistoryTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => v
 }
 
 // ===== 統計 Tab =====
+type SortState = { key: string; asc: boolean };
+
+function SortPills({ options, sort, onSort }: {
+  options: { key: string; label: string }[];
+  sort: SortState;
+  onSort: (key: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {options.map((o) => {
+        const active = sort.key === o.key;
+        return (
+          <button
+            key={o.key}
+            onClick={() => onSort(o.key)}
+            className={`text-xs px-2 py-1 rounded-full transition-colors ${
+              active ? 'bg-neon-green/20 text-neon-green' : 'text-gray-500'
+            }`}
+          >
+            {o.label}{active && (sort.asc ? ' ▲' : ' ▼')}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatsTab({ data }: { data: ScratchData }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [personSort, setPersonSort] = useState<SortState>({ key: 'net', asc: false });
+  const [typeSort, setTypeSort] = useState<SortState>({ key: 'net', asc: false });
   const typeMap = Object.fromEntries(data.scratchTypes.map((t) => [t.id, t]));
+
+  const handleSort = (setter: React.Dispatch<React.SetStateAction<SortState>>) => (key: string) => {
+    setter((prev) => prev.key === key ? { key, asc: !prev.asc } : { key, asc: false });
+  };
 
   // 每人統計（含詳細資料），合買按人數均分
   const personStats = data.people.map((p) => {
@@ -367,6 +400,12 @@ function StatsTab({ data }: { data: ScratchData }) {
       .filter((x): x is NonNullable<typeof x> => x !== null);
 
     return { person: p, count: records.length, spent: Math.round(spent), won: Math.round(won), net: Math.round(won - spent), winCount, maxPrize: Math.round(maxPrize), roi, byType };
+  }).sort((a, b) => {
+    if (a.count === 0 && b.count !== 0) return 1;
+    if (a.count !== 0 && b.count === 0) return -1;
+    const va = (a as Record<string, unknown>)[personSort.key] as number;
+    const vb = (b as Record<string, unknown>)[personSort.key] as number;
+    return personSort.asc ? va - vb : vb - va;
   });
 
   // 每種刮刮樂統計
@@ -375,7 +414,14 @@ function StatsTab({ data }: { data: ScratchData }) {
     const totalSpent = records.length * t.price;
     const totalWon = records.reduce((sum, r) => sum + r.prize, 0);
     const winCount = records.filter((r) => r.prize > 0).length;
-    return { type: t, count: records.length, totalSpent, totalWon, winCount, net: totalWon - totalSpent };
+    const actualReturn = totalSpent > 0 ? Math.round((totalWon / totalSpent) * 100) : 0;
+    return { type: t, count: records.length, totalSpent, totalWon, winCount, net: totalWon - totalSpent, actualReturn };
+  }).sort((a, b) => {
+    if (a.count === 0 && b.count !== 0) return 1;
+    if (a.count !== 0 && b.count === 0) return -1;
+    const va = (a as Record<string, unknown>)[typeSort.key] as number;
+    const vb = (b as Record<string, unknown>)[typeSort.key] as number;
+    return typeSort.asc ? va - vb : vb - va;
   });
 
   const totalSpent = personStats.reduce((s, p) => s + p.spent, 0);
@@ -396,7 +442,20 @@ function StatsTab({ data }: { data: ScratchData }) {
 
       {/* 個人 */}
       <div>
-        <h3 className="text-sm text-gray-400 mb-2 font-bold">個人統計</h3>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm text-gray-400 font-bold">個人統計</h3>
+          <SortPills
+            options={[
+              { key: 'net', label: '損益' },
+              { key: 'spent', label: '花費' },
+              { key: 'won', label: '中獎' },
+              { key: 'count', label: '張數' },
+              { key: 'roi', label: 'ROI' },
+            ]}
+            sort={personSort}
+            onSort={handleSort(setPersonSort)}
+          />
+        </div>
         <div className="space-y-2">
           {personStats.map((s) => {
             const isOpen = expanded === s.person;
@@ -509,11 +568,21 @@ function StatsTab({ data }: { data: ScratchData }) {
       {/* 刮刮樂種類 */}
       {typeStats.length > 0 && (
         <div>
-          <h3 className="text-sm text-gray-400 mb-2 font-bold">各種類統計</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-sm text-gray-400 font-bold">各種類統計</h3>
+            <SortPills
+              options={[
+                { key: 'net', label: '損益' },
+                { key: 'count', label: '張數' },
+                { key: 'actualReturn', label: '回本率' },
+              ]}
+              sort={typeSort}
+              onSort={handleSort(setTypeSort)}
+            />
+          </div>
           <div className="space-y-2">
             {typeStats.map((s) => {
               const actualWinRate = s.count > 0 ? Math.round((s.winCount / s.count) * 100) : 0;
-              const actualReturn = s.totalSpent > 0 ? Math.round((s.totalWon / s.totalSpent) * 100) : 0;
               const profitCount = data.records.filter((r) => r.scratchTypeId === s.type.id && r.prize > s.type.price).length;
               const actualProfitRate = s.count > 0 ? Math.round((profitCount / s.count) * 100) : 0;
               return (
@@ -551,11 +620,11 @@ function StatsTab({ data }: { data: ScratchData }) {
                     </div>
                     <div className="p-1.5 rounded-lg bg-white/5">
                       <p className="text-[10px] text-gray-500">回本率</p>
-                      <p className={`text-sm font-bold ${actualReturn >= 100 ? 'text-neon-green' : 'text-accent'}`}>
-                        {actualReturn}%
+                      <p className={`text-sm font-bold ${s.actualReturn >= 100 ? 'text-neon-green' : 'text-accent'}`}>
+                        {s.actualReturn}%
                       </p>
                       {s.type.expectedReturn != null && (
-                        <p className={`text-[10px] ${actualReturn >= s.type.expectedReturn ? 'text-neon-green' : 'text-accent'}`}>
+                        <p className={`text-[10px] ${s.actualReturn >= s.type.expectedReturn ? 'text-neon-green' : 'text-accent'}`}>
                           官方 {s.type.expectedReturn}%
                         </p>
                       )}
