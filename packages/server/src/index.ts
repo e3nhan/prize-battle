@@ -25,6 +25,8 @@ import {
   handleSubmitBid,
   handlePlayAgain,
   handleRoundReady,
+  migratePlayerIds,
+  getReconnectData,
 } from './game-engine.js';
 import { addBots, removeBots, autoReadyBots } from './bot.js';
 import {
@@ -144,17 +146,39 @@ io.on('connection', (socket) => {
 
   // 重新連線（遊戲）
   socket.on('reconnectGame', (playerName: string) => {
-    const room = handleReconnect(socket.id, playerName);
-    if (!room) {
+    const result = handleReconnect(socket.id, playerName);
+    if (!result) {
       socket.emit('error', 'reconnect_failed');
       return;
     }
+    const { room, oldId } = result;
+
+    // 遷移遊戲狀態中以 playerId 為 key 的資料
+    migratePlayerIds(room.id, oldId, socket.id);
+
     socket.join(room.id);
     socket.emit('roomUpdate', room);
     if (room.gameState) {
       socket.emit('gameStart', room.gameState);
       if (room.gameState.phase) {
         socket.emit('phaseChange', room.gameState.phase);
+      }
+
+      // 補發當前回合資料，避免重連後畫面空白
+      const reconnectData = getReconnectData(room.id);
+      if (reconnectData) {
+        if (reconnectData.bettingState) {
+          socket.emit('bettingRoundStart', reconnectData.bettingState);
+          if (reconnectData.bettingState.result) {
+            socket.emit('bettingResult', reconnectData.bettingState.result);
+          }
+        }
+        if (reconnectData.auctionState) {
+          socket.emit('auctionRoundStart', reconnectData.auctionState);
+          if (reconnectData.auctionState.result) {
+            socket.emit('auctionResult', reconnectData.auctionState.result);
+          }
+        }
       }
     }
     // 通知其他人此玩家已重連

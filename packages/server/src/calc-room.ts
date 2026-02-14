@@ -321,6 +321,7 @@ export function handleCalcReconnect(
   const oldId = player.id;
   player.id = socketId;
   player.isConnected = true;
+  calcPlayerMap.delete(oldId);
   calcPlayerMap.set(socketId, CALC_ROOM_ID);
 
   // 房主重連時更新 hostId

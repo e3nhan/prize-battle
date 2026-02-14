@@ -496,6 +496,54 @@ export function handleRoundReady(io: TypedServer, roomId: string, playerId: stri
   }
 }
 
+export function migratePlayerIds(roomId: string, oldId: string, newId: string): void {
+  const game = activeGames.get(roomId);
+  if (!game) return;
+
+  const gs = game.room.gameState;
+  if (!gs) return;
+
+  // Migrate bettingState.playerBets
+  if (gs.bettingState?.playerBets[oldId] !== undefined) {
+    gs.bettingState.playerBets[newId] = gs.bettingState.playerBets[oldId];
+    delete gs.bettingState.playerBets[oldId];
+  }
+
+  // Migrate auctionState.playerBids
+  if (gs.auctionState?.playerBids[oldId] !== undefined) {
+    gs.auctionState.playerBids[newId] = gs.auctionState.playerBids[oldId];
+    delete gs.auctionState.playerBids[oldId];
+  }
+
+  // Migrate roundReadyPlayers
+  if (game.roundReadyPlayers.has(oldId)) {
+    game.roundReadyPlayers.delete(oldId);
+    game.roundReadyPlayers.add(newId);
+  }
+
+  // Migrate playerShields
+  if (game.playerShields.has(oldId)) {
+    game.playerShields.delete(oldId);
+    game.playerShields.add(newId);
+  }
+}
+
+export function getReconnectData(roomId: string): {
+  bettingState: import('@prize-battle/shared').BettingState | null;
+  auctionState: import('@prize-battle/shared').AuctionState | null;
+} | null {
+  const game = activeGames.get(roomId);
+  if (!game) return null;
+
+  const gs = game.room.gameState;
+  if (!gs) return null;
+
+  return {
+    bettingState: gs.bettingState,
+    auctionState: gs.auctionState,
+  };
+}
+
 export function handlePlayAgain(io: TypedServer, roomId: string): void {
   const game = activeGames.get(roomId);
   if (!game) return;

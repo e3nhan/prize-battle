@@ -29,6 +29,11 @@ export function useCalcDisplaySocket() {
 
     s.emit('joinCalcDisplay');
 
+    // 重連後自動重新加入 display room
+    s.on('connect', () => {
+      s.emit('joinCalcDisplay');
+    });
+
     s.on('calcRoomUpdate', (room, state) => {
       store.setRoomAndState(room, state);
     });
@@ -42,6 +47,7 @@ export function useCalcDisplaySocket() {
     });
 
     return () => {
+      s.off('connect');
       s.off('calcRoomUpdate');
       s.off('calcChipAdjusted');
       s.off('calcBetRoundUpdate');

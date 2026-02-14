@@ -97,17 +97,19 @@ export function handleDisconnect(socketId: string): Room | null {
   return room;
 }
 
-export function handleReconnect(socketId: string, playerName: string): Room | null {
+export function handleReconnect(socketId: string, playerName: string): { room: Room; oldId: string } | null {
   const room = rooms.get(MAIN_ROOM_ID);
   if (!room) return null;
 
   const player = room.players.find((p: Player) => p.name === playerName);
-  if (player) {
-    player.id = socketId;
-    player.isConnected = true;
-    playerRoomMap.set(socketId, MAIN_ROOM_ID);
-  }
-  return room;
+  if (!player) return null;
+
+  const oldId = player.id;
+  player.id = socketId;
+  player.isConnected = true;
+  playerRoomMap.delete(oldId);
+  playerRoomMap.set(socketId, MAIN_ROOM_ID);
+  return { room, oldId };
 }
 
 export function getMainRoom(): Room | undefined {
