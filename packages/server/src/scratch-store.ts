@@ -22,7 +22,7 @@ export interface ScratchType {
 
 export interface ScratchRecord {
   id: string;
-  person: string;
+  persons: string[];
   scratchTypeId: string;
   prize: number; // 中獎金額，0 = 沒中
   timestamp: number;
@@ -103,6 +103,15 @@ function load(): ScratchData {
             changed = true;
           }
         }
+      }
+    }
+    // 資料遷移：舊記錄 person → persons
+    for (const rec of data.records) {
+      const legacy = rec as any;
+      if (legacy.person && !Array.isArray(rec.persons)) {
+        rec.persons = [legacy.person];
+        delete legacy.person;
+        changed = true;
       }
     }
     if (changed) save(data);

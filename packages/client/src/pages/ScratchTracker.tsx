@@ -18,7 +18,7 @@ interface ScratchType {
 
 interface ScratchRecord {
   id: string;
-  person: string;
+  persons: string[];
   scratchTypeId: string;
   prize: number;
   timestamp: number;
@@ -106,7 +106,7 @@ export default function ScratchTracker({ onBack }: { onBack: () => void }) {
 
 // ===== 登記 Tab =====
 function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void }) {
-  const [person, setPerson] = useState('');
+  const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
   const [typeId, setTypeId] = useState('');
   const [prize, setPrize] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -122,20 +122,27 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
 
   const selectedType = data.scratchTypes.find((t) => t.id === typeId);
 
+  const togglePerson = (p: string) => {
+    setSelectedPersons((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+    );
+  };
+
   const handleSubmit = async () => {
-    if (!person || !typeId) return;
+    if (selectedPersons.length === 0 || !typeId) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${API}/api/scratch/records`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ person, scratchTypeId: typeId, prize: Number(prize) || 0 }),
+        body: JSON.stringify({ persons: selectedPersons, scratchTypeId: typeId, prize: Number(prize) || 0 }),
       });
       if (res.ok) {
         const prizeVal = Number(prize) || 0;
+        const names = selectedPersons.join('、');
         const msg = prizeVal > 0
-          ? `${person} — ${selectedType?.name} 中 $${prizeVal}！`
-          : `${person} — ${selectedType?.name} 已登記`;
+          ? `${names} — ${selectedType?.name} 中 $${prizeVal}！`
+          : `${names} — ${selectedType?.name} 已登記`;
         setToast({ text: msg, key: Date.now() });
         setPrize('');
         navigator.vibrate?.(50);
@@ -170,16 +177,18 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
         )}
       </AnimatePresence>
 
-      {/* 選人 */}
+      {/* 選人（多選） */}
       <div>
-        <label className="block text-sm text-gray-400 mb-2">誰刮的？</label>
+        <label className="block text-sm text-gray-400 mb-2">
+          誰合買？{selectedPersons.length > 0 && <span className="text-neon-green ml-1">已選 {selectedPersons.length} 人</span>}
+        </label>
         <div className="flex flex-wrap gap-2">
           {data.people.map((p) => (
             <button
               key={p}
-              onClick={() => setPerson(p)}
+              onClick={() => togglePerson(p)}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                person === p
+                selectedPersons.includes(p)
                   ? 'bg-neon-green/20 border-2 border-neon-green text-neon-green'
                   : 'bg-secondary border-2 border-white/10 text-gray-400'
               }`}
@@ -238,7 +247,7 @@ function AddTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => void 
       {/* 送出 */}
       <motion.button
         onClick={handleSubmit}
-        disabled={!person || !typeId || submitting}
+        disabled={selectedPersons.length === 0 || !typeId || submitting}
         whileTap={{ scale: 0.95 }}
         className="w-full py-4 rounded-xl text-lg font-bold transition-colors
           bg-neon-green/80 text-primary disabled:opacity-30"
@@ -301,16 +310,16 @@ function HistoryTab({ data, onRefresh }: { data: ScratchData; onRefresh: () => v
             <div className="flex items-center gap-3 p-3 bg-secondary">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-white">{r.person}</span>
+                  <span className="font-bold text-white">{r.persons.join('、')}</span>
                   <span className="text-sm text-gray-500">{t?.name ?? '?'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <span className="text-gray-400">花 ${t?.price ?? '?'}</span>
+                  <span className="text-gray-400">花 ${t?.price ?? '?'}{r.persons.length > 1 && ` (每人$${Math.round((t?.price ?? 0) / r.persons.length)})`}</span>
                   <span className={r.prize > 0 ? 'text-gold font-bold' : 'text-gray-500'}>
                     中 ${r.prize}
                   </span>
                   <span className={net >= 0 ? 'text-neon-green' : 'text-accent'}>
-                    {net >= 0 ? '+' : ''}{net}
+                    {net >= 0 ? '+' : ''}{net}{r.persons.length > 1 && ` (每人${Math.round(net / r.persons.length) >= 0 ? '+' : ''}${Math.round(net / r.persons.length)})`}
                   </span>
                 </div>
               </div>
@@ -337,13 +346,13 @@ function StatsTab({ data }: { data: ScratchData }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const typeMap = Object.fromEntries(data.scratchTypes.map((t) => [t.id, t]));
 
-  // 每人統計（含詳細資料）
+  // 每人統計（含詳細資料），合買按人數均分
   const personStats = data.people.map((p) => {
-    const records = data.records.filter((r) => r.person === p);
-    const spent = records.reduce((sum, r) => sum + (typeMap[r.scratchTypeId]?.price ?? 0), 0);
-    const won = records.reduce((sum, r) => sum + r.prize, 0);
+    const records = data.records.filter((r) => r.persons.includes(p));
+    const spent = records.reduce((sum, r) => sum + (typeMap[r.scratchTypeId]?.price ?? 0) / r.persons.length, 0);
+    const won = records.reduce((sum, r) => sum + r.prize / r.persons.length, 0);
     const winCount = records.filter((r) => r.prize > 0).length;
-    const maxPrize = records.length > 0 ? Math.max(...records.map((r) => r.prize)) : 0;
+    const maxPrize = records.length > 0 ? Math.max(...records.map((r) => r.prize / r.persons.length)) : 0;
     const roi = spent > 0 ? ((won - spent) / spent) * 100 : 0;
 
     // 各種類明細
@@ -351,13 +360,13 @@ function StatsTab({ data }: { data: ScratchData }) {
       .map((t) => {
         const tRecords = records.filter((r) => r.scratchTypeId === t.id);
         if (tRecords.length === 0) return null;
-        const tSpent = tRecords.length * t.price;
-        const tWon = tRecords.reduce((sum, r) => sum + r.prize, 0);
-        return { type: t, count: tRecords.length, spent: tSpent, won: tWon, net: tWon - tSpent };
+        const tSpent = tRecords.reduce((sum, r) => sum + t.price / r.persons.length, 0);
+        const tWon = tRecords.reduce((sum, r) => sum + r.prize / r.persons.length, 0);
+        return { type: t, count: tRecords.length, spent: Math.round(tSpent), won: Math.round(tWon), net: Math.round(tWon - tSpent) };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
 
-    return { person: p, count: records.length, spent, won, net: won - spent, winCount, maxPrize, roi, byType };
+    return { person: p, count: records.length, spent: Math.round(spent), won: Math.round(won), net: Math.round(won - spent), winCount, maxPrize: Math.round(maxPrize), roi, byType };
   });
 
   // 每種刮刮樂統計

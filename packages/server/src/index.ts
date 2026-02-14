@@ -111,11 +111,11 @@ app.put('/api/scratch/types', (req, res) => {
 });
 
 app.post('/api/scratch/records', (req, res) => {
-  const { person, scratchTypeId, prize } = req.body;
-  if (!person || !scratchTypeId || prize === undefined) {
+  const { persons, scratchTypeId, prize } = req.body;
+  if (!Array.isArray(persons) || persons.length === 0 || !scratchTypeId || prize === undefined) {
     res.status(400).json({ error: 'Missing fields' }); return;
   }
-  res.json(addScratchRecord({ person, scratchTypeId, prize }));
+  res.json(addScratchRecord({ persons, scratchTypeId, prize }));
 });
 
 app.delete('/api/scratch/records/:id', (req, res) => {
