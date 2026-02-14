@@ -183,6 +183,10 @@ function applySpecialEffect(
     case 'steal': {
       const richest = others.sort((a: Player, b: Player) => b.chips - a.chips)[0];
       if (richest) {
+        if (playerShields.has(richest.id)) {
+          playerShields.delete(richest.id);
+          return `偷竊！但 ${richest.name} 的護盾擋住了！`;
+        }
         const stealAmount = Math.floor(richest.chips * effect.amount);
         richest.chips -= stealAmount;
         winner.chips += stealAmount;

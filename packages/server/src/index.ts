@@ -53,6 +53,10 @@ import {
   getCalcState,
 } from './calc-room.js';
 
+function isValidAmount(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && Number.isInteger(n) && n > 0;
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -247,6 +251,7 @@ io.on('connection', (socket) => {
 
   // Betting
   socket.on('placeBet', (bet: { optionId: string; amount: number; choiceId?: string }) => {
+    if (!isValidAmount(bet.amount)) { socket.emit('error', '無效金額'); return; }
     const roomId = getPlayerRoomId(socket.id);
     if (!roomId) return;
     const success = handlePlaceBet(io, roomId, socket.id, bet.optionId, bet.amount, bet.choiceId);
@@ -264,6 +269,7 @@ io.on('connection', (socket) => {
 
   // Auction
   socket.on('submitBid', (amount: number) => {
+    if (amount !== 0 && !isValidAmount(amount)) { socket.emit('error', '無效金額'); return; }
     const roomId = getPlayerRoomId(socket.id);
     if (!roomId) return;
     const success = handleSubmitBid(io, roomId, socket.id, amount);
@@ -330,6 +336,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('adjustChips', (targetPlayerId: string, amount: number, note?: string) => {
+    if (!isValidAmount(amount)) { socket.emit('error', '無效金額'); return; }
     const result = adjustPlayerChips(socket.id, targetPlayerId, amount, note);
     if (!result) {
       socket.emit('error', '調整籌碼失敗');
@@ -340,6 +347,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('topUp', (amount: number) => {
+    if (!isValidAmount(amount)) { socket.emit('error', '無效金額'); return; }
     const result = topUpChips(socket.id, amount);
     if (!result) {
       socket.emit('error', '儲值失敗');
@@ -359,6 +367,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('placeCalcBet', (amount: number) => {
+    if (!isValidAmount(amount)) { socket.emit('error', '無效金額'); return; }
     const round = placeCalcBet(socket.id, amount);
     if (!round) { socket.emit('error', '下注失敗'); return; }
     const room = getOrCreateCalcRoom();

@@ -434,9 +434,9 @@ export function handleSubmitBid(
     io.to(roomId).emit('playerBidConfirmed', playerId);
     io.to(`display_${roomId}`).emit('playerBidConfirmed', playerId);
 
-    // Check if all players have bid (skip disconnected and 0-chip players)
+    // Check if all players have bid (skip disconnected and players who can't afford MIN_BID)
     const allBid = room.players.every(
-      (p) => !p.isConnected || p.chips === 0 || gs.auctionState!.playerBids[p.id] !== undefined,
+      (p) => !p.isConnected || p.chips < GAME_CONFIG.MIN_BID || gs.auctionState!.playerBids[p.id] !== undefined,
     );
     if (allBid) {
       clearTimer(roomId);

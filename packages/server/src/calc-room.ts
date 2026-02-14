@@ -108,6 +108,7 @@ export function topUpChips(
   if (!calcRoom) return null;
   if (!calcPlayerMap.has(socketId)) return null;
   if (amount <= 0) return null;
+  if (amount > CALC_CONFIG.MAX_TOP_UP) return null;
 
   const player = calcRoom.players.find((p: Player) => p.id === socketId);
   if (!player) return null;
@@ -209,7 +210,8 @@ export function resolveCalcBet(
       totalLoserLoss += betAmount * multiplier;
     }
   }
-  const winPerPerson = Math.floor(totalLoserLoss / validWinnerIds.length);
+  const baseWin = Math.floor(totalLoserLoss / validWinnerIds.length);
+  const remainder = totalLoserLoss - baseWin * validWinnerIds.length;
 
   const newTxs: ChipTransaction[] = [];
   const now = Date.now();
@@ -222,17 +224,20 @@ export function resolveCalcBet(
     const isWinner = validWinnerIds.includes(playerId);
 
     if (isWinner) {
-      player.chips += winPerPerson;
+      // 最後一個贏家補上尾差，確保零和
+      const isLastWinner = playerId === validWinnerIds[validWinnerIds.length - 1];
+      const winAmount = baseWin + (isLastWinner ? remainder : 0);
+      player.chips += winAmount;
       newTxs.push({
         id: String(++txCounter),
         type: 'bet_win',
         fromPlayerId: playerId,
         targetPlayerId: playerId,
-        amount: winPerPerson,
+        amount: winAmount,
         fromNewBalance: player.chips,
         toNewBalance: player.chips,
         timestamp: now,
-        note: `投注贏 (下注${betAmount}, 獲得${winPerPerson})`,
+        note: `投注贏 (下注${betAmount}, 獲得${winAmount})`,
       });
     } else {
       // 輸家扣除金額隨倍率放大，允許籌碼為負值
