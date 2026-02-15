@@ -35,6 +35,7 @@ export function useDisplaySocket(): TypedSocket {
     s.on('phaseChange', (phase) => store.setPhase(phase));
     s.on('timerTick', (seconds) => store.setTimeLeft(seconds));
     s.on('countdownStart', (seconds) => store.setCountdown(seconds));
+    s.on('countdownCancel', () => store.setCountdown(0));
     s.on('bettingRoundStart', (state) => store.setBettingState(state));
     s.on('playerBetConfirmed', (id) => store.addConfirmedBet(id));
     s.on('playerRoundReady', (id) => store.addConfirmedRoundReady(id));
@@ -51,6 +52,7 @@ export function useDisplaySocket(): TypedSocket {
       s.off('phaseChange');
       s.off('timerTick');
       s.off('countdownStart');
+      s.off('countdownCancel');
       s.off('bettingRoundStart');
       s.off('playerBetConfirmed');
       s.off('playerRoundReady');

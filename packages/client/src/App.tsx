@@ -21,7 +21,7 @@ function hashToMode(): AppMode {
   if (hash === 'game' || hash === 'calculator' || hash === 'scratch') return hash;
   // 重整後 hash 可能遺失，從 sessionStorage 恢復
   const saved = sessionStorage.getItem('appMode');
-  if (saved === 'game' || saved === 'calculator') {
+  if (saved === 'game' || saved === 'calculator' || saved === 'scratch') {
     window.location.hash = `#/${saved}`;
     return saved;
   }
@@ -106,6 +106,7 @@ export default function App() {
   }, []);
 
   const handleSetMode = useCallback((mode: AppMode) => {
+    sessionStorage.setItem('appMode', mode);
     window.location.hash = `#/${mode}`;
   }, []);
 

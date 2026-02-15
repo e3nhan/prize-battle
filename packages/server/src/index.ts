@@ -18,6 +18,8 @@ import {
   getPlayerRoomId,
   getMainRoom,
   resetRoom,
+  setCountdownInterval,
+  clearCountdownInterval,
 } from './room.js';
 import {
   startGame,
@@ -27,6 +29,7 @@ import {
   handleRoundReady,
   migratePlayerIds,
   getReconnectData,
+  cleanupIfAllDisconnected,
 } from './game-engine.js';
 import { addBots, removeBots, autoReadyBots } from './bot.js';
 import {
@@ -223,18 +226,25 @@ io.on('connection', (socket) => {
         countdown--;
         if (countdown <= 0) {
           clearInterval(countdownInterval);
+          setCountdownInterval(null);
           startGame(io, room);
         } else {
           io.to(room.id).emit('countdownStart', countdown);
           io.to(`display_${room.id}`).emit('countdownStart', countdown);
         }
       }, 1000);
+      setCountdownInterval(countdownInterval);
     }
   });
 
   socket.on('playerUnready', () => {
     const room = setPlayerUnready(socket.id);
     if (!room) return;
+    // 取消進行中的倒數計時
+    if (clearCountdownInterval()) {
+      io.to(room.id).emit('countdownCancel');
+      io.to(`display_${room.id}`).emit('countdownCancel');
+    }
     io.to(room.id).emit('roomUpdate', room);
     io.to(`display_${room.id}`).emit('roomUpdate', room);
   });
@@ -284,6 +294,8 @@ io.on('connection', (socket) => {
     if (!roomId) return;
     const room = getMainRoom();
     if (!room) return;
+    // 防止多人同時觸發重複 reset
+    if (room.status === 'waiting') return;
 
     handlePlayAgain(io, roomId);
     resetRoom(room);
@@ -419,6 +431,8 @@ io.on('connection', (socket) => {
     if (room) {
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
+      // 所有玩家都斷線時清理遊戲資源
+      cleanupIfAllDisconnected(room.id);
     }
 
     const cRoom = handleCalcDisconnect(socket.id);

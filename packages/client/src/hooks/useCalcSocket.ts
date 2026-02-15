@@ -3,21 +3,20 @@ import { getSocket } from './useSocket';
 import { useCalcStore } from '../stores/calcStore';
 
 export function useCalcSocket() {
-  const store = useCalcStore();
-
   useEffect(() => {
     const s = getSocket();
+    const store = useCalcStore.getState();
 
     s.on('calcRoomUpdate', (room, state) => {
-      store.setRoomAndState(room, state);
+      useCalcStore.getState().setRoomAndState(room, state);
     });
 
     s.on('calcChipAdjusted', (tx, room) => {
-      store.addTransaction(tx, room);
+      useCalcStore.getState().addTransaction(tx, room);
     });
 
     s.on('calcBetRoundUpdate', (round) => {
-      store.setBetRound(round);
+      useCalcStore.getState().setBetRound(round);
     });
 
     s.on('error', (message) => {
@@ -25,7 +24,7 @@ export function useCalcSocket() {
         sessionStorage.removeItem('playerName');
         return;
       }
-      store.setError(message);
+      useCalcStore.getState().setError(message);
     });
 
     // 頁面重整後自動重連
@@ -34,7 +33,7 @@ export function useCalcSocket() {
     if (savedName && appMode === 'calculator') {
       store.setPlayerName(savedName);
       const tryReconnect = () => {
-        store.setPlayerId(s.id!);
+        useCalcStore.getState().setPlayerId(s.id!);
         s.emit('reconnectCalc', savedName);
       };
       if (s.connected) {

@@ -22,78 +22,81 @@ export function getSocket(): TypedSocket {
 
 export function useSocket(): TypedSocket {
   const socketRef = useRef<TypedSocket>(getSocket());
-  const store = useGameStore();
 
   useEffect(() => {
     const s = socketRef.current;
+    const store = useGameStore.getState();
 
     s.on('roomUpdate', (room) => {
-      store.setRoom(room);
+      useGameStore.getState().setRoom(room);
     });
 
     s.on('error', (message) => {
-      // reconnect_failed 表示伺服器找不到該玩家，清掉 session 讓 UI 回到加入頁
       if (message === 'reconnect_failed') {
         sessionStorage.removeItem('playerName');
         return;
       }
-      store.setError(message);
+      useGameStore.getState().setError(message);
     });
 
     s.on('gameStart', (state) => {
-      store.setGameState(state);
+      useGameStore.getState().setGameState(state);
     });
 
     s.on('phaseChange', (phase) => {
-      store.setPhase(phase);
+      useGameStore.getState().setPhase(phase);
     });
 
     s.on('timerTick', (secondsLeft) => {
-      store.setTimeLeft(secondsLeft);
+      useGameStore.getState().setTimeLeft(secondsLeft);
     });
 
     s.on('countdownStart', (seconds) => {
-      store.setCountdown(seconds);
+      useGameStore.getState().setCountdown(seconds);
+    });
+
+    s.on('countdownCancel', () => {
+      useGameStore.getState().setCountdown(0);
     });
 
     s.on('bettingRoundStart', (state) => {
-      store.setBettingState(state);
+      useGameStore.getState().setBettingState(state);
     });
 
     s.on('playerBetConfirmed', (playerId) => {
-      store.addConfirmedBet(playerId);
+      useGameStore.getState().addConfirmedBet(playerId);
     });
 
     s.on('playerRoundReady', (playerId) => {
-      store.addConfirmedRoundReady(playerId);
+      useGameStore.getState().addConfirmedRoundReady(playerId);
     });
 
     s.on('bettingResult', (result) => {
-      store.setBettingResult(result);
+      useGameStore.getState().setBettingResult(result);
     });
 
     s.on('auctionRoundStart', (state) => {
-      store.setAuctionState(state);
+      useGameStore.getState().setAuctionState(state);
     });
 
     s.on('playerBidConfirmed', (playerId) => {
-      store.addConfirmedBid(playerId);
+      useGameStore.getState().addConfirmedBid(playerId);
     });
 
     s.on('auctionResult', (result) => {
-      store.setAuctionResult(result);
+      useGameStore.getState().setAuctionResult(result);
     });
 
     s.on('finalResult', (leaderboard) => {
-      store.setLeaderboard(leaderboard);
+      useGameStore.getState().setLeaderboard(leaderboard);
     });
 
     // 斷線重連提示
     s.io.on('reconnect', () => {
-      store.showToast('已重新連線');
+      useGameStore.getState().showToast('已重新連線');
       const name = sessionStorage.getItem('playerName');
       if (name && sessionStorage.getItem('appMode') === 'game') {
-        store.setPlayerId(s.id!);
+        useGameStore.getState().setPlayerId(s.id!);
         s.emit('reconnectGame', name);
       }
     });
@@ -104,7 +107,7 @@ export function useSocket(): TypedSocket {
     if (savedName && appMode === 'game') {
       store.setPlayerName(savedName);
       const tryReconnect = () => {
-        store.setPlayerId(s.id!);
+        useGameStore.getState().setPlayerId(s.id!);
         s.emit('reconnectGame', savedName);
       };
       if (s.connected) {
@@ -121,6 +124,7 @@ export function useSocket(): TypedSocket {
       s.off('phaseChange');
       s.off('timerTick');
       s.off('countdownStart');
+      s.off('countdownCancel');
       s.off('bettingRoundStart');
       s.off('playerBetConfirmed');
       s.off('playerRoundReady');

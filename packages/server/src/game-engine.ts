@@ -350,6 +350,12 @@ function startTimer(
 
   game.timerInterval = setInterval(() => {
     timeLeft--;
+
+    // 同步更新 state.timeLeft，避免 placeBet/submitBid 的 timeLeft 檢查失效
+    const gs = game.room.gameState;
+    if (gs?.bettingState) gs.bettingState.timeLeft = timeLeft;
+    if (gs?.auctionState) gs.auctionState.timeLeft = timeLeft;
+
     io.to(roomId).emit('timerTick', timeLeft);
     io.to(`display_${roomId}`).emit('timerTick', timeLeft);
 
@@ -542,6 +548,21 @@ export function getReconnectData(roomId: string): {
     bettingState: gs.bettingState,
     auctionState: gs.auctionState,
   };
+}
+
+export function cleanupIfAllDisconnected(roomId: string): void {
+  const game = activeGames.get(roomId);
+  if (!game) return;
+  const allDisconnected = game.room.players.every((p: Player) => !p.isConnected);
+  if (allDisconnected) {
+    clearTimer(roomId);
+    if (game.roundReadyTimeout) {
+      clearTimeout(game.roundReadyTimeout);
+      game.roundReadyTimeout = null;
+    }
+    activeGames.delete(roomId);
+    console.log(`All players disconnected, cleaned up game for room ${roomId}`);
+  }
 }
 
 export function handlePlayAgain(io: TypedServer, roomId: string): void {

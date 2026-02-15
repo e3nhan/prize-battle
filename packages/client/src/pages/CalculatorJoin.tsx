@@ -42,6 +42,7 @@ export default function CalculatorJoin({ onBack }: { onBack: () => void }) {
           placeholder="輸入暱稱"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
           maxLength={10}
           className="w-full px-4 py-4 bg-secondary border border-gray-700 rounded-xl
             text-white text-lg text-center placeholder-gray-500

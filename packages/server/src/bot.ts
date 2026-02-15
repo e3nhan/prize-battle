@@ -23,13 +23,19 @@ export function addBots(count: number): Room {
   const available = room.maxPlayers - room.players.length;
   const toAdd = Math.min(count, available);
 
+  // Bot buyIn 取真人玩家平均值，若無真人則用 100
+  const humanPlayers = room.players.filter((p: Player) => !isBot(p.id));
+  const avgBuyIn = humanPlayers.length > 0
+    ? Math.round(humanPlayers.reduce((sum, p) => sum + p.buyIn, 0) / humanPlayers.length)
+    : 100;
+
   for (let i = 0; i < toAdd; i++) {
     const index = currentBotCount + i;
     const bot: Player = {
       id: `${BOT_PREFIX}${index + 1}`,
       name: BOT_NAMES[index] || `電腦${index + 1}`,
-      chips: 100,
-      buyIn: 100,
+      chips: avgBuyIn,
+      buyIn: avgBuyIn,
       isReady: true,
       isConnected: true,
       avatar: BOT_AVATARS[index] || '🤖',

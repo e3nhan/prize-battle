@@ -22,6 +22,7 @@ export interface ServerToClientEvents {
   phaseChange: (phase: GamePhase, data?: unknown) => void;
   timerTick: (secondsLeft: number) => void;
   countdownStart: (seconds: number) => void;
+  countdownCancel: () => void;
 
   // 押注
   bettingRoundStart: (state: BettingState) => void;

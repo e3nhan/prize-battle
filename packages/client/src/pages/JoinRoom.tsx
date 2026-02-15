@@ -46,6 +46,7 @@ export default function JoinRoom({ onBack }: { onBack: () => void }) {
           placeholder="輸入暱稱"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
           maxLength={10}
           className="w-full px-4 py-4 bg-secondary border border-gray-700 rounded-xl
             text-white text-lg text-center placeholder-gray-500
@@ -85,7 +86,7 @@ export default function JoinRoom({ onBack }: { onBack: () => void }) {
               text-white text-lg text-center
               focus:outline-none focus:border-gold transition-colors"
           />
-          <p className="text-xs text-gray-500 text-center">最少 10 元，依最終籌碼比例分配獎金池</p>
+          <p className="text-xs text-gray-500 text-center">最少 10 元，獎金按名次比例分配（第1名 35%、第2名 25%...）</p>
         </div>
 
         {/* Error message */}

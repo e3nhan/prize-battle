@@ -292,17 +292,30 @@ export function generateAuctionBoxes(): AuctionBox[] {
 // ===== 排行榜計算 =====
 export function calculateLeaderboard(players: Player[], totalPrizePool: number): LeaderboardEntry[] {
   const sorted = [...players].sort((a, b) => b.chips - a.chips);
-  const totalChips = players.reduce((sum, p) => sum + p.chips, 0);
+  const dist = GAME_CONFIG.PRIZE_DISTRIBUTION;
 
-  return sorted.map((player, index) => ({
-    playerId: player.id,
-    playerName: player.name,
-    chips: player.chips,
-    rank: index + 1,
-    prize: totalChips > 0
-      ? Math.round((player.chips / totalChips) * totalPrizePool)
-      : Math.round(totalPrizePool / players.length),
-  }));
+  let distributed = 0;
+  return sorted.map((player, index) => {
+    let prize: number;
+    if (index < dist.length && dist[index] > 0) {
+      prize = Math.round(totalPrizePool * dist[index]);
+    } else {
+      prize = 0;
+    }
+    distributed += prize;
+    // 最後一位有獎金的玩家吸收尾差
+    if (index === Math.min(sorted.length, dist.length) - 1) {
+      const remainder = totalPrizePool - distributed;
+      if (remainder !== 0) prize += remainder;
+    }
+    return {
+      playerId: player.id,
+      playerName: player.name,
+      chips: player.chips,
+      rank: index + 1,
+      prize,
+    };
+  });
 }
 
 // ===== 工具函式 =====

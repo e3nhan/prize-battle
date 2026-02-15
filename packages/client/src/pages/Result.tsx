@@ -11,6 +11,17 @@ export default function Result() {
   const myEntry = leaderboard.find((e) => e.playerId === playerId);
   const myBuyIn = room?.players.find((p) => p.id === playerId)?.buyIn ?? 0;
 
+  // 空狀態處理（例如重連後直接進入 result）
+  if (leaderboard.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <p className="text-4xl mb-4">🏆</p>
+        <h2 className="text-2xl font-bold text-gray-400">等待結算中...</h2>
+        <p className="text-gray-500 text-sm mt-2">排行榜資料載入中</p>
+      </div>
+    );
+  }
+
   const handlePlayAgain = () => {
     getSocket().emit('playAgain');
     // 不呼叫 reset()，讓 server 的 roomUpdate(status='waiting') 自動導向 lobby

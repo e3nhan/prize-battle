@@ -212,7 +212,7 @@ export default function AuctionRound() {
               <h2 className="text-2xl font-bold text-gold">你得標了！</h2>
               <p className="text-lg">出價: 🪙{auctionResult.winningBid}</p>
               <p className="text-sm text-gray-400 mt-1">
-                {auctionResult.box.type === 'diamond' ? '鑽石箱：出價 x3 返還' :
+                {auctionResult.box.type === 'diamond' ? '鑽石箱：從其他玩家獲得出價 ×2 的籌碼' :
                  auctionResult.box.type === 'bomb' ? '炸彈箱：損失 80% 出價' :
                  auctionResult.box.type === 'mystery' ? '神秘箱：觸發特殊效果' :
                  '普通箱：出價 +30%~60% 返還'}

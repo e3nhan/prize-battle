@@ -6,6 +6,22 @@ const MAIN_ROOM_ID = 'MAIN';
 const rooms = new Map<string, Room>();
 const playerRoomMap = new Map<string, string>(); // socketId -> roomId
 
+// 倒數計時 interval ID，用於取消準備時 clearInterval
+let countdownIntervalId: ReturnType<typeof setInterval> | null = null;
+
+export function setCountdownInterval(id: ReturnType<typeof setInterval> | null): void {
+  countdownIntervalId = id;
+}
+
+export function clearCountdownInterval(): boolean {
+  if (countdownIntervalId !== null) {
+    clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
+    return true;
+  }
+  return false;
+}
+
 function getRandomAvatar(existingAvatars: string[]): string {
   const available = GAME_CONFIG.AVATARS.filter((a: string) => !existingAvatars.includes(a));
   return available[Math.floor(Math.random() * available.length)] || '🎮';

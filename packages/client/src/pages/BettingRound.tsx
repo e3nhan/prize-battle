@@ -25,7 +25,7 @@ export default function BettingRound() {
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null); // group_predict A/B
-  const [betAmount, setBetAmount] = useState(100);
+  const [betAmount, setBetAmountRaw] = useState(100);
   const [myBetInfo, setMyBetInfo] = useState<{ optionId: string; choiceId?: string; amount: number } | null>(null);
 
   // 每輪開始時重置選擇狀態，避免舊選擇殘留到下一輪
@@ -131,6 +131,10 @@ export default function BettingRound() {
   const myChips = me?.chips ?? 0;
   const minBet = Math.ceil(myChips * (bettingState.minBetRatio ?? GAME_CONFIG.MIN_BET_RATIO));
   const totalPlayers = room.players.filter((p) => p.isConnected).length;
+
+  // clamp betAmount 到有效範圍
+  const betAmount = Math.max(minBet, Math.min(betAmountRaw, myChips));
+  const setBetAmount = setBetAmountRaw;
 
   const handlePlaceBet = () => {
     if (!selectedOption || hasPlacedBet) return;
