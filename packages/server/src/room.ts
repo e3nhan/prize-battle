@@ -49,6 +49,8 @@ export function joinMainRoom(socketId: string, playerName: string, buyIn: number
   if (room.status !== 'waiting') throw new Error('遊戲已開始');
   if (room.players.length >= room.maxPlayers) throw new Error('房間已滿');
   if (room.players.some((p: Player) => p.name === playerName)) throw new Error('暱稱已被使用');
+  if (!playerName || playerName.length > 10) throw new Error('暱稱長度必須在 1~10 字');
+  if (!Number.isFinite(buyIn) || buyIn < 10 || buyIn > 99999) throw new Error('投注金額必須在 10~99999 之間');
 
   const existingAvatars = room.players.map((p: Player) => p.avatar);
   const player: Player = {

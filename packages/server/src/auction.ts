@@ -120,8 +120,10 @@ export function resolveAuction(
   const playerChipsAfter: Record<string, number> = {};
   let effectResult: string | undefined;
 
-  if (winnerId) {
-    const winner = players.find((p: Player) => p.id === winnerId)!;
+  const winner = winnerId ? players.find((p: Player) => p.id === winnerId) : undefined;
+  if (winnerId && !winner) winnerId = null;
+
+  if (winnerId && winner) {
     const others = players.filter((p: Player) => p.id !== winnerId);
 
     switch (box.type) {
@@ -176,12 +178,13 @@ function applySpecialEffect(
   players: Player[],
   playerShields: Set<string>,
 ): string {
-  const winner = players.find((p: Player) => p.id === winnerId)!;
+  const winner = players.find((p: Player) => p.id === winnerId);
+  if (!winner) return '效果執行失敗';
   const others = players.filter((p: Player) => p.id !== winnerId);
 
   switch (effect.type) {
     case 'steal': {
-      const richest = others.sort((a: Player, b: Player) => b.chips - a.chips)[0];
+      const richest = [...others].sort((a: Player, b: Player) => b.chips - a.chips)[0];
       if (richest) {
         if (playerShields.has(richest.id)) {
           playerShields.delete(richest.id);

@@ -127,7 +127,8 @@ function resolvePoolBetting(
 
   for (let i = 0; i < winnerIds.length; i++) {
     const playerId = winnerIds[i];
-    const player = players.find((p: Player) => p.id === playerId)!;
+    const player = players.find((p: Player) => p.id === playerId);
+    if (!player) continue;
 
     let share: number;
     if (i === winnerIds.length - 1) {
@@ -151,6 +152,7 @@ function resolvePoolBetting(
       continue;
     }
     player.chips -= bet.amount;
+    if (player.chips < 0) player.chips = 0;
     playerResults[player.id] = { won: false, payout: -bet.amount, newChips: player.chips };
   }
 
@@ -220,9 +222,11 @@ function applyRoundEvent(state: BettingState, players: Player[], result: BetResu
       // 原贏家變輸家（賠下注額）→ 他們的下注額組成新的 loserPool
       let newLoserPool = 0;
       for (const id of winners) {
-        const player = players.find((p: Player) => p.id === id)!;
+        const player = players.find((p: Player) => p.id === id);
+        if (!player) continue;
         const betAmount = state.playerBets[id].amount;
         player.chips -= betAmount;
+        if (player.chips < 0) player.chips = 0;
         newLoserPool += betAmount;
         result.playerResults[id] = { won: false, payout: -betAmount, newChips: player.chips };
       }
@@ -232,7 +236,8 @@ function applyRoundEvent(state: BettingState, players: Player[], result: BetResu
       let distributed = 0;
       for (let i = 0; i < totalNewWinners; i++) {
         const id = losers[i];
-        const player = players.find((p: Player) => p.id === id)!;
+        const player = players.find((p: Player) => p.id === id);
+        if (!player) continue;
         let share: number;
         if (i === totalNewWinners - 1) {
           share = newLoserPool - distributed;
@@ -258,7 +263,8 @@ function applyRoundEvent(state: BettingState, players: Player[], result: BetResu
       const share = Math.floor(pool / bettorIds.length);
       for (let i = 0; i < bettorIds.length; i++) {
         const id = bettorIds[i];
-        const player = players.find((p: Player) => p.id === id)!;
+        const player = players.find((p: Player) => p.id === id);
+        if (!player) continue;
         const betAmount = state.playerBets[id].amount;
         const thisShare = i === bettorIds.length - 1 ? pool - share * (bettorIds.length - 1) : share;
         const payout = thisShare - betAmount;

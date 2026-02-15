@@ -146,8 +146,8 @@ io.on('connection', (socket) => {
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
       console.log(`${playerName} joined the game (buy-in: ${buyIn})`);
-    } catch (err: any) {
-      socket.emit('error', err.message);
+    } catch (err: unknown) {
+      socket.emit('error', err instanceof Error ? err.message : '未知錯誤');
     }
   });
 
@@ -311,8 +311,8 @@ io.on('connection', (socket) => {
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
       console.log(`Added ${count} bot(s)`);
-    } catch (err: any) {
-      socket.emit('error', err.message);
+    } catch (err: unknown) {
+      socket.emit('error', err instanceof Error ? err.message : '未知錯誤');
     }
   });
 
@@ -322,8 +322,8 @@ io.on('connection', (socket) => {
       io.to(room.id).emit('roomUpdate', room);
       io.to(`display_${room.id}`).emit('roomUpdate', room);
       console.log('Removed all bots');
-    } catch (err: any) {
-      socket.emit('error', err.message);
+    } catch (err: unknown) {
+      socket.emit('error', err instanceof Error ? err.message : '未知錯誤');
     }
   });
 
@@ -335,8 +335,8 @@ io.on('connection', (socket) => {
       io.to(room.id).emit('calcRoomUpdate', room, state);
       io.to(`display_${room.id}`).emit('calcRoomUpdate', room, state);
       console.log(`${playerName} joined calculator (initial: ${initialChips ?? 0})`);
-    } catch (err: any) {
-      socket.emit('error', err.message);
+    } catch (err: unknown) {
+      socket.emit('error', err instanceof Error ? err.message : '未知錯誤');
     }
   });
 
