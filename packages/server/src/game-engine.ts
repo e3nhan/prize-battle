@@ -18,6 +18,7 @@ import { createBettingState, placeBet, resolveBetting } from './betting.js';
 import { createAuctionBoxes, createAuctionState, submitBid, resolveAuction } from './auction.js';
 import { scheduleBotBets, scheduleBotBids } from './bot.js';
 import { logGameResult } from './game-log.js';
+import { resetRoom } from './room.js';
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -560,6 +561,7 @@ export function cleanupIfAllDisconnected(roomId: string): void {
       clearTimeout(game.roundReadyTimeout);
       game.roundReadyTimeout = null;
     }
+    resetRoom(game.room);
     activeGames.delete(roomId);
     console.log(`All players disconnected, cleaned up game for room ${roomId}`);
   }

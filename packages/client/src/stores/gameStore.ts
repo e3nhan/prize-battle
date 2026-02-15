@@ -19,6 +19,7 @@ interface GameStore {
   playerName: string | null;
   error: string | null;
   toast: string | null;
+  isConnected: boolean;
 
   // Room
   room: Room | null;
@@ -69,6 +70,7 @@ interface GameStore {
   addConfirmedBid: (playerId: string) => void;
   setHasSubmittedBid: (value: boolean) => void;
   setLeaderboard: (leaderboard: LeaderboardEntry[]) => void;
+  setIsConnected: (value: boolean) => void;
   reset: () => void;
 }
 
@@ -78,6 +80,7 @@ export const useGameStore = create<GameStore>((set) => ({
   playerName: null,
   error: null,
   toast: null,
+  isConnected: true,
   room: null,
   countdown: null,
   gameState: null,
@@ -152,13 +155,13 @@ export const useGameStore = create<GameStore>((set) => ({
 
   setTimeLeft: (seconds) => set({ timeLeft: seconds }),
 
-  setBettingState: (bettingState) => set({
+  setBettingState: (bettingState) => set((state) => ({
     bettingState,
-    bettingResult: null,
-    hasPlacedBet: false,
-    confirmedBets: new Set(),
+    bettingResult: bettingState.result ?? null,
+    hasPlacedBet: !!(state.playerId && bettingState.playerBets[state.playerId]),
+    confirmedBets: new Set(Object.keys(bettingState.playerBets)),
     timeLeft: bettingState.timeLeft,
-  }),
+  })),
 
   setBettingResult: (result) => set({ bettingResult: result }),
 
@@ -181,9 +184,9 @@ export const useGameStore = create<GameStore>((set) => ({
     const me = state.room?.players.find((p) => p.id === state.playerId);
     return {
       auctionState,
-      auctionResult: null,
-      hasSubmittedBid: false,
-      confirmedBids: new Set(),
+      auctionResult: auctionState.result ?? null,
+      hasSubmittedBid: !!(state.playerId && auctionState.playerBids[state.playerId] !== undefined),
+      confirmedBids: new Set(Object.keys(auctionState.playerBids)),
       timeLeft: auctionState.timeLeft,
       chipsBeforeAuction: me?.chips ?? 0,
     };
@@ -200,6 +203,7 @@ export const useGameStore = create<GameStore>((set) => ({
   setHasSubmittedBid: (value) => set({ hasSubmittedBid: value }),
 
   setLeaderboard: (leaderboard) => set({ leaderboard, screen: 'result' }),
+  setIsConnected: (value) => set({ isConnected: value }),
 
   reset: () => set({
     screen: 'join',

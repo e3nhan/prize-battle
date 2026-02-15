@@ -98,8 +98,8 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
   setTimeLeft: (seconds) => set({ timeLeft: seconds }),
   setBettingState: (state) => set({
     bettingState: state,
-    bettingResult: null,
-    confirmedBets: new Set(),
+    bettingResult: state.result ?? null,
+    confirmedBets: new Set(Object.keys(state.playerBets)),
     timeLeft: state.timeLeft,
   }),
   setBettingResult: (result) => set({ bettingResult: result }),
@@ -115,8 +115,8 @@ export const useDisplayStore = create<DisplayStore>((set) => ({
   }),
   setAuctionState: (state) => set({
     auctionState: state,
-    auctionResult: null,
-    confirmedBids: new Set(),
+    auctionResult: state.result ?? null,
+    confirmedBids: new Set(Object.keys(state.playerBids)),
     timeLeft: state.timeLeft,
   }),
   setAuctionResult: (result) => set({ auctionResult: result }),

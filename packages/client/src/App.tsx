@@ -48,6 +48,28 @@ function Toast() {
   );
 }
 
+function DisconnectOverlay() {
+  const isConnected = useGameStore((s) => s.isConnected);
+  const screen = useGameStore((s) => s.screen);
+
+  // 只在已進入遊戲後才顯示斷線提示（join 頁面不需要）
+  if (isConnected || screen === 'join') return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+    >
+      <div className="text-center px-6">
+        <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-white text-lg font-bold mb-1">連線中斷</p>
+        <p className="text-gray-400 text-sm">正在重新連線...</p>
+      </div>
+    </motion.div>
+  );
+}
+
 function GameApp({ onBack }: { onBack: () => void }) {
   useSocket();
 
@@ -131,6 +153,7 @@ export default function App() {
   return (
     <>
       <Toast />
+      <DisconnectOverlay />
       <GameApp onBack={handleBack} />
     </>
   );

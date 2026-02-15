@@ -256,6 +256,28 @@ io.on('connection', (socket) => {
     socket.emit('roomUpdate', room);
     if (room.gameState) {
       socket.emit('gameStart', room.gameState);
+      if (room.gameState.phase) {
+        socket.emit('phaseChange', room.gameState.phase);
+      }
+      // 補發當前回合資料，避免 display 重連後畫面空白
+      const reconnectData = getReconnectData(room.id);
+      if (reconnectData) {
+        if (reconnectData.bettingState) {
+          socket.emit('bettingRoundStart', reconnectData.bettingState);
+          if (reconnectData.bettingState.result) {
+            socket.emit('bettingResult', reconnectData.bettingState.result);
+          }
+        }
+        if (reconnectData.auctionState) {
+          socket.emit('auctionRoundStart', reconnectData.auctionState);
+          if (reconnectData.auctionState.result) {
+            socket.emit('auctionResult', reconnectData.auctionState.result);
+          }
+        }
+      }
+      if (room.gameState.leaderboard?.length) {
+        socket.emit('finalResult', room.gameState.leaderboard);
+      }
     }
   });
 

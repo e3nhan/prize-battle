@@ -34,6 +34,8 @@ export function useSocket(): TypedSocket {
     s.on('error', (message) => {
       if (message === 'reconnect_failed') {
         sessionStorage.removeItem('playerName');
+        sessionStorage.removeItem('appMode');
+        useGameStore.getState().reset();
         return;
       }
       useGameStore.getState().setError(message);
@@ -91,6 +93,15 @@ export function useSocket(): TypedSocket {
       useGameStore.getState().setLeaderboard(leaderboard);
     });
 
+    // 斷線/連線狀態追蹤
+    s.on('disconnect', () => {
+      useGameStore.getState().setIsConnected(false);
+    });
+
+    s.on('connect', () => {
+      useGameStore.getState().setIsConnected(true);
+    });
+
     // 斷線重連提示
     s.io.on('reconnect', () => {
       useGameStore.getState().showToast('已重新連線');
@@ -133,6 +144,8 @@ export function useSocket(): TypedSocket {
       s.off('playerBidConfirmed');
       s.off('auctionResult');
       s.off('finalResult');
+      s.off('disconnect');
+      s.off('connect');
       s.io.off('reconnect');
     };
   }, []);
